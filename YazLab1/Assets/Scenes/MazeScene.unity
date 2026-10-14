@@ -2551,8 +2551,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   targetDoor: {fileID: 1060493926}
-  destroyOnUse: 1
-  closeDelay: 0
+  destroyOnUse: 0
+  closeDelay: 1
 --- !u!61 &431867354
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -2935,8 +2935,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   targetDoor: {fileID: 532131212}
-  destroyOnUse: 1
-  closeDelay: 0
+  destroyOnUse: 0
+  closeDelay: 1
 --- !u!61 &1039517723
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -3419,8 +3419,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   targetDoor: {fileID: 1189834157}
-  destroyOnUse: 1
-  closeDelay: 0
+  destroyOnUse: 0
+  closeDelay: 1
 --- !u!61 &1866116728
 BoxCollider2D:
   m_ObjectHideFlags: 0
