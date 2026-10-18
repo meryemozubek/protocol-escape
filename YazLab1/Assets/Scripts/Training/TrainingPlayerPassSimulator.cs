@@ -4,9 +4,9 @@ using UnityEngine;
 
 public class TrainingPlayerPassSimulator : MonoBehaviour
 {
-    // Oyuncunun kapidan gecmesi icin beklenecek sure araligi.
-    [SerializeField] private float minDelay = 1f;
-    [SerializeField] private float maxDelay = 3f;
+    // Oyuncunun kapidan gecmesi icin rastgele bekleme suresi.
+    [SerializeField] private float minDelay = 0f;
+    [SerializeField] private float maxDelay = 10f;
 
     // Oyuncunun kapidan gecip gecmedigini belirtir.
     public bool HasPlayerPassed { get; private set; }
@@ -21,20 +21,19 @@ public class TrainingPlayerPassSimulator : MonoBehaviour
             passCoroutine != null)
             return;
 
-        // Oyuncunun kapidan gecmesini simule eder.
         passCoroutine = StartCoroutine(SimulatePlayerPass());
     }
 
     private IEnumerator SimulatePlayerPass()
     {
-        // 1-3 saniye arasinda rastgele bir sure belirlenir.
+        // 0-10 saniye arasinda rastgele sure belirlenir.
         float delay = Random.Range(minDelay, maxDelay);
 
         Debug.Log($"Oyuncunun gecisi bekleniyor. Sure: {delay:F2} saniye.");
 
         yield return new WaitForSeconds(delay);
 
-        // Oyuncunun kapidan gectigi kabul edilir.
+        // Bekleme tamamlaninca oyuncunun gectigi kabul edilir.
         HasPlayerPassed = true;
         passCoroutine = null;
 
@@ -43,11 +42,10 @@ public class TrainingPlayerPassSimulator : MonoBehaviour
 
     private void OnTriggerExit2D(Collider2D other)
     {
-        // ML-Agent butondan ayrilmadiysa islem yapilmaz.
         if (!other.CompareTag("Agent") || HasPlayerPassed)
             return;
 
-        // Erken ayrilma durumunda gecis iptal edilir.
+        // Ajan erken ayrilirsa bekleme iptal edilir.
         if (passCoroutine != null)
         {
             StopCoroutine(passCoroutine);
@@ -59,14 +57,13 @@ public class TrainingPlayerPassSimulator : MonoBehaviour
 
     public void ResetForEpisode()
     {
-        // Devam eden simulasyon varsa durdurulur.
+        // Devam eden beklemeyi durdur.
         if (passCoroutine != null)
         {
             StopCoroutine(passCoroutine);
             passCoroutine = null;
         }
 
-        // Yeni egitim denemesi icin gecis bilgisi sifirlanir.
         HasPlayerPassed = false;
 
         Debug.Log("Yeni egitim denemesi basladi. Gecis bilgisi sifirlandi.");

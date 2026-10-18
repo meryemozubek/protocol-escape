@@ -1518,8 +1518,14 @@ MonoBehaviour:
   agentParameters:
     maxStep: 0
   hasUpgradedFromAgentParameters: 1
-  MaxStep: 0
+  MaxStep: 1500
   moveSpeed: 5
+  targetButton: {fileID: 1866116730}
+  targetPassSimulator: {fileID: 1866116731}
+  targetButton2: {fileID: 1039517725}
+  targetPassSimulator2: {fileID: 1039517726}
+  targetButton3: {fileID: 431867356}
+  targetPassSimulator3: {fileID: 431867357}
 --- !u!114 &231256593
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1533,7 +1539,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_BrainParameters:
-    VectorObservationSize: 0
+    VectorObservationSize: 2
     NumStackedVectorObservations: 1
     m_ActionSpec:
       m_NumContinuousActions: 2
@@ -1702,7 +1708,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3a5c9d521e5ef4759a8246a07d52221e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  DecisionPeriod: 1
+  DecisionPeriod: 5
   TakeActionsBetweenDecisions: 1
 --- !u!114 &231256599
 MonoBehaviour:
@@ -2024,8 +2030,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 61f99a1f4b27b4557a15edf0c71608c6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  minDelay: 1
-  maxDelay: 3
+  minDelay: 0
+  maxDelay: 10
 --- !u!1 &519420028
 GameObject:
   m_ObjectHideFlags: 0
@@ -2995,8 +3001,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 61f99a1f4b27b4557a15edf0c71608c6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  minDelay: 1
-  maxDelay: 3
+  minDelay: 0
+  maxDelay: 10
 --- !u!1 &1060493925
 GameObject:
   m_ObjectHideFlags: 0
@@ -3494,8 +3500,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 61f99a1f4b27b4557a15edf0c71608c6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  minDelay: 1
-  maxDelay: 3
+  minDelay: 0
+  maxDelay: 10
 --- !u!1 &1889770305
 GameObject:
   m_ObjectHideFlags: 0
@@ -3625,9 +3631,9 @@ SceneRoots:
   - {fileID: 1866116730}
   - {fileID: 1039517725}
   - {fileID: 431867356}
-  - {fileID: 231256597}
   - {fileID: 1021667859}
   - {fileID: 1023573927}
   - {fileID: 736298032}
   - {fileID: 602470929}
   - {fileID: 214017260}
+  - {fileID: 231256597}

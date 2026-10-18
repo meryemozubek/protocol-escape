@@ -1,3 +1,4 @@
+
 using System;
 using System.Collections;
 using UnityEngine;
@@ -19,7 +20,6 @@ public class PlayerHealth : MonoBehaviour
     private Coroutine burnCoroutine;
     private Coroutine waterHealCoroutine;
 
-  
     public event Action<int, int> OnHealthChanged;
     public event Action OnPlayerDied;
 
@@ -84,7 +84,7 @@ public class PlayerHealth : MonoBehaviour
         while (currentHealth > 0)
         {
             yield return new WaitForSeconds(interval);
-            
+
             currentHealth -= 1;
             currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
             OnHealthChanged?.Invoke(currentHealth, maxHealth);
@@ -174,13 +174,40 @@ public class PlayerHealth : MonoBehaviour
         isInvulnerable = false;
     }
 
+    // Yeni egitim bolumu icin can ve etkileri sifirlar.
+    public void ResetForEpisode()
+    {
+        // Yanma, su ve regen islemlerini durdur.
+        StopAllCoroutines();
+
+        regenCoroutine = null;
+        burnCoroutine = null;
+        waterHealCoroutine = null;
+
+        // Can ve dokunulmazlik durumunu sifirla.
+        isInvulnerable = false;
+        currentHealth = maxHealth;
+
+        // Can gostergesini guncelle.
+        OnHealthChanged?.Invoke(currentHealth, maxHealth);
+    }
+
     private void Die()
     {
         if (regenCoroutine != null) StopCoroutine(regenCoroutine);
         if (burnCoroutine != null) StopCoroutine(burnCoroutine);
         if (waterHealCoroutine != null) StopCoroutine(waterHealCoroutine);
-        
+
+        regenCoroutine = null;
+        burnCoroutine = null;
+        waterHealCoroutine = null;
+
         OnPlayerDied?.Invoke();
-        gameObject.SetActive(false);
+
+        // Normal Player kapanir egitim Agent'i aktif kalir.
+        if (!CompareTag("Agent"))
+        {
+            gameObject.SetActive(false);
+        }
     }
 }
