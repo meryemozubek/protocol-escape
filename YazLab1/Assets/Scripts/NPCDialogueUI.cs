@@ -40,9 +40,10 @@ public class NPCDialogueUI : MonoBehaviour
             return;
         }
 
-        // İstek atılırken UI'ı kilitle
+        // İstek atılırken UI'ı kilitle ve diyalog alanına bekleme mesajı ver
         SetUIState(isProcessing: true);
         if (statusText != null) statusText.text = "Robot düşünüyor...";
+        if (npcResponseText != null) npcResponseText.text = "Düşünüyor..."; // Geçici bekleme yazısı
 
         // OllamaManager üzerinden LLM'e istek gönder
         ollamaManager.AskNPC(
@@ -53,9 +54,11 @@ public class NPCDialogueUI : MonoBehaviour
                 SetUIState(isProcessing: false);
                 if (statusText != null) statusText.text = "";
 
-                npcResponseText.text = npcData.dialogue;
+                if (npcResponseText != null)
+                {
+                    npcResponseText.text = npcData.dialogue;
+                }
 
-             
                 if (npcData.door_unlocked)
                 {
                     if (doorScript != null)
@@ -67,22 +70,25 @@ public class NPCDialogueUI : MonoBehaviour
             },
             onError: (errorMessage) =>
             {
-             
                 SetUIState(isProcessing: false);
                 if (statusText != null) statusText.text = errorMessage;
+                if (npcResponseText != null) npcResponseText.text = "NPC yanıt veremedi.";
             }
         );
 
-      
         playerInputField.text = "";
     }
 
-   
     private void SetUIState(bool isProcessing)
     {
         if (sendButton != null)
         {
             sendButton.interactable = !isProcessing;
+        }
+
+        if (playerInputField != null)
+        {
+            playerInputField.interactable = !isProcessing;
         }
     }
 }
