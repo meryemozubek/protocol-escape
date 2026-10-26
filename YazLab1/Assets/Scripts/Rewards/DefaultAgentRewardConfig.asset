@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 617ea82f7681940dfa746dd39da1d1e8, type: 3}
+  m_Name: DefaultAgentRewardConfig
+  m_EditorClassIdentifier: 
+  buttonReward: 1
+  completionReward: 10
+  firePenalty: -1
+  fireReentryPenalty: -0.25
+  extinguishReward: 2
+  dryWaterEntryPenalty: -0.25
+  burningPenaltyInterval: 0.5
+  burningPenaltyPerTick: -2
+  fullHealthReward: 0.5
+  timePenaltyPerSecond: -0.01
+  deathPenalty: -10

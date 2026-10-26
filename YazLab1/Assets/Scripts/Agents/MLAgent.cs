@@ -1,4 +1,3 @@
-
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Unity.MLAgents;
@@ -10,6 +9,11 @@ using Unity.MLAgents.Sensors;
 public class MLAgent : Agent
 {
     [SerializeField] private float moveSpeed = 5f;
+
+    [Header("Reward System")]
+    [SerializeField] private AgentRewardConfig rewardConfig;
+
+    private AgentRewardPolicy rewardPolicy;
 
     [Header("Birinci Buton")]
     [SerializeField] private Transform targetButton;
@@ -33,11 +37,35 @@ public class MLAgent : Agent
     private int currentButtonIndex;
     private bool rewardGiven;
 
+    private bool fullHealthRewardGiven;
+    private float burningPenaltyTimer;
+
     // Baslangic ayarlari.
     public override void Initialize()
     {
         rb = GetComponent<Rigidbody2D>();
         health = GetComponent<PlayerHealth>();
+
+        // Odul ayarlarini yukle.
+        if (rewardConfig == null)
+        {
+            Debug.LogError("Reward Config atanmamis.");
+            enabled = false;
+            return;
+        }
+
+        rewardPolicy = new AgentRewardPolicy(
+            rewardConfig.ButtonReward,
+            rewardConfig.CompletionReward,
+            rewardConfig.FirePenalty,
+            rewardConfig.ExtinguishReward,
+            rewardConfig.TimePenaltyPerSecond,
+            rewardConfig.DeathPenalty,
+            rewardConfig.BurningPenaltyPerTick,
+            rewardConfig.FullHealthReward,
+            rewardConfig.FireReentryPenalty,
+            rewardConfig.DryWaterEntryPenalty
+        );
 
         // Ajanin ilk konumunu kaydet.
         startPosition = rb.position;
@@ -61,6 +89,15 @@ public class MLAgent : Agent
         if (health != null)
         {
             health.OnPlayerDied += HandleAgentDeath;
+
+            // Yanma ve sonme olaylarini dinle.
+            health.OnBurnStarted += HandleBurnStarted;
+            health.OnFireReentered += HandleFireReentered;
+            health.OnExtinguished += HandleExtinguished;
+
+            // Su ve can yenileme olaylarini dinle.
+            health.OnWaterEnteredWithoutFire += HandleDryWaterEntry;
+            health.OnHealthRestoredInWater += HandleFullHealth;
         }
     }
 
@@ -70,6 +107,10 @@ public class MLAgent : Agent
         // Gorev sirasini ve odul bilgisini sifirla.
         currentButtonIndex = 0;
         rewardGiven = false;
+
+        // Can yenileme odulunu ve yanma sayacini sifirla.
+        fullHealthRewardGiven = false;
+        burningPenaltyTimer = 0f;
 
         // Ajanin hareketini durdur ve baslangica dondur.
         rb.velocity = Vector2.zero;
@@ -97,6 +138,13 @@ public class MLAgent : Agent
     // Hedef butonun ajana gore konumunu gozlemler.
     public override void CollectObservations(VectorSensor sensor)
     {
+        if (currentButtonIndex >= targetButtons.Length)
+        {
+            sensor.AddObservation(0f);
+            sensor.AddObservation(0f);
+            return;
+        }
+
         Transform currentTarget = targetButtons[currentButtonIndex];
 
         if (currentTarget == null)
@@ -128,6 +176,9 @@ public class MLAgent : Agent
         );
 
         // Siradaki butonun gecis durumunu kontrol et.
+        if (currentButtonIndex >= passSimulators.Length)
+            return;
+
         TrainingPlayerPassSimulator currentSimulator =
             passSimulators[currentButtonIndex];
 
@@ -135,12 +186,14 @@ public class MLAgent : Agent
             currentSimulator.HasPlayerPassed &&
             !rewardGiven)
         {
+            float buttonReward = rewardPolicy.GetButtonReward(true, rewardGiven);
+
             rewardGiven = true;
 
-            AddReward(1f);
+            AddReward(buttonReward);
 
             Debug.Log(
-                $"Buton {currentButtonIndex + 1} tamamlandi. Odul: +1"
+                $"Buton {currentButtonIndex + 1} tamamlandi. Odul: {buttonReward}"
             );
 
             // Siradaki goreve gec.
@@ -149,9 +202,11 @@ public class MLAgent : Agent
             // Son buton tamamlandiysa bolumu bitir.
             if (currentButtonIndex >= targetButtons.Length)
             {
-                AddReward(10f);
+                float completionReward = rewardPolicy.GetCompletionReward(true);
 
-                Debug.Log("Tum butonlar tamamlandi. Bonus: +10");
+                AddReward(completionReward);
+
+                Debug.Log($"Tum butonlar tamamlandi. Bonus: {completionReward}");
 
                 EndEpisode();
                 return;
@@ -171,12 +226,129 @@ public class MLAgent : Agent
         }
     }
 
+    // Fizik zamanina gore surekli odul ve cezalari uygula.
+    private void FixedUpdate()
+    {
+        if (rewardPolicy == null || health == null)
+            return;
+
+        // Dogru butonda oyuncu bekleniyorsa zaman cezasi verme.
+        bool waitingAtCorrectButton = false;
+
+        if (currentButtonIndex < passSimulators.Length)
+        {
+            TrainingPlayerPassSimulator currentSimulator =
+                passSimulators[currentButtonIndex];
+
+            waitingAtCorrectButton =
+                currentSimulator != null && currentSimulator.IsWaiting;
+        }
+
+        float timePenalty = rewardPolicy.GetTimePenalty(
+            Time.fixedDeltaTime,
+            waitingAtCorrectButton
+        );
+
+        AddReward(timePenalty);
+
+        // Yanmiyorsa yanma sayacini sifirla.
+        if (!health.IsBurning)
+        {
+            burningPenaltyTimer = 0f;
+            return;
+        }
+
+        burningPenaltyTimer += Time.fixedDeltaTime;
+
+        float interval = Mathf.Max(
+            0.01f,
+            rewardConfig.BurningPenaltyInterval
+        );
+
+        // Her tamamlanan yanma periyodunda ceza uygula.
+        while (burningPenaltyTimer >= interval)
+        {
+            burningPenaltyTimer -= interval;
+
+            float penalty = rewardPolicy.GetBurningPenalty();
+
+            AddReward(penalty);
+
+            Debug.Log($"Hala yaniyor! Ceza: {penalty}");
+        }
+    }
+
+    // Yeni yanma basladiginda ceza ver.
+    private void HandleBurnStarted()
+    {
+        burningPenaltyTimer = 0f;
+
+        float firePenalty = rewardPolicy.GetFirePenalty(true);
+
+        AddReward(firePenalty);
+
+        Debug.Log($"Yandin! Ilk ceza: {firePenalty}");
+    }
+
+    // Yaniyorken tekrar atese temas edildiginde ceza ver.
+    private void HandleFireReentered()
+    {
+        float penalty = rewardPolicy.GetFireReentryPenalty(true);
+
+        AddReward(penalty);
+
+        Debug.Log($"Yanarken tekrar atese girdin. Ceza: {penalty}");
+    }
+
+    // Ajan suyla sondugunde odul ver.
+    private void HandleExtinguished()
+    {
+        burningPenaltyTimer = 0f;
+
+        float extinguishReward =
+            rewardPolicy.GetExtinguishReward(true, true);
+
+        AddReward(extinguishReward);
+
+        Debug.Log($"Ates sondu! Odul: +{extinguishReward}");
+    }
+
+    // Ajan yanmazken suya girerse ceza ver.
+    private void HandleDryWaterEntry()
+    {
+        float penalty = rewardPolicy.GetDryWaterEntryPenalty(false);
+
+        AddReward(penalty);
+
+        Debug.Log($"Yanmazken suya girdin. Ceza: {penalty}");
+    }
+
+    // Suda can tamamen doldugunda bir kez odul ver.
+    private void HandleFullHealth()
+    {
+        float reward = rewardPolicy.GetFullHealthReward(
+            true,
+            fullHealthRewardGiven
+        );
+
+        if (reward == 0f)
+            return;
+
+        fullHealthRewardGiven = true;
+
+        AddReward(reward);
+
+        Debug.Log($"Can tamamen doldu! Odul: +{reward}");
+    }
+
     // Ajan oldugunde ceza ver ve bolumu bitir.
     private void HandleAgentDeath()
     {
-        AddReward(-1f);
+        float deathPenalty = rewardPolicy.GetDeathPenalty();
 
-        Debug.Log("ML-Agent oldu. Ceza: -1");
+        AddReward(deathPenalty);
+
+        Debug.Log($"ML-Agent oldu. Ceza: {deathPenalty}");
 
         EndEpisode();
     }
@@ -205,6 +377,15 @@ public class MLAgent : Agent
         if (health != null)
         {
             health.OnPlayerDied -= HandleAgentDeath;
+
+            // Yanma ve sonme olaylarinin baglantisini temizle.
+            health.OnBurnStarted -= HandleBurnStarted;
+            health.OnFireReentered -= HandleFireReentered;
+            health.OnExtinguished -= HandleExtinguished;
+
+            // Su ve can yenileme olaylarinin baglantisini temizle.
+            health.OnWaterEnteredWithoutFire -= HandleDryWaterEntry;
+            health.OnHealthRestoredInWater -= HandleFullHealth;
         }
     }
 }

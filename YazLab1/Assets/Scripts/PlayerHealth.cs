@@ -1,4 +1,3 @@
-
 using System;
 using System.Collections;
 using UnityEngine;
@@ -23,8 +22,16 @@ public class PlayerHealth : MonoBehaviour
     public event Action<int, int> OnHealthChanged;
     public event Action OnPlayerDied;
 
+    // Yanma ve su olaylari.
+    public event Action OnBurnStarted;
+    public event Action OnFireReentered;
+    public event Action OnExtinguished;
+    public event Action OnWaterEnteredWithoutFire;
+    public event Action OnHealthRestoredInWater;
+
     public int CurrentHealth => currentHealth;
     public int MaxHealth => maxHealth;
+    public bool IsBurning => burnCoroutine != null;
 
     private void Start()
     {
@@ -72,11 +79,24 @@ public class PlayerHealth : MonoBehaviour
     // Ateş Çukuruna değince tetiklenir: Suya girene kadar saniyede 1 hasar verir
     public void StartBurning(float damageInterval = 1.0f)
     {
+        if (currentHealth <= 0)
+            return;
+
+        // Zaten yaniyorsa yanma suresini sifirlama.
+        if (burnCoroutine != null)
+        {
+            OnFireReentered?.Invoke();
+            return;
+        }
+
         // Yandığı sırada otomatik yenilenmeyi durdur
         if (regenCoroutine != null) StopCoroutine(regenCoroutine);
+        regenCoroutine = null;
 
-        if (burnCoroutine != null) StopCoroutine(burnCoroutine);
         burnCoroutine = StartCoroutine(BurnRoutine(damageInterval));
+
+        // Yeni yanma basladigini bildir.
+        OnBurnStarted?.Invoke();
     }
 
     private IEnumerator BurnRoutine(float interval)
@@ -100,17 +120,36 @@ public class PlayerHealth : MonoBehaviour
     // Suya girince tetiklenir: Ateşi söndürür ve suyun içindeyken canı doldurur
     public void EnterWater(float healInterval = 1.0f)
     {
+        if (currentHealth <= 0)
+            return;
+
+        bool wasBurning = burnCoroutine != null;
+
         // 1. Ateşi söndür
         if (burnCoroutine != null)
         {
             StopCoroutine(burnCoroutine);
             burnCoroutine = null;
+
             Debug.Log("Suya girildi, ateş söndü!");
+            OnExtinguished?.Invoke();
+        }
+
+        // Yanmazken suya giris olayini bildir.
+        if (!wasBurning)
+        {
+            OnWaterEnteredWithoutFire?.Invoke();
         }
 
         // 2. Suda kaldığı sürece can yenilemeyi başlat
         if (waterHealCoroutine != null) StopCoroutine(waterHealCoroutine);
-        waterHealCoroutine = StartCoroutine(WaterHealRoutine(healInterval));
+
+        waterHealCoroutine = null;
+
+        if (currentHealth < maxHealth)
+        {
+            waterHealCoroutine = StartCoroutine(WaterHealRoutine(healInterval));
+        }
     }
 
     // Sudan çıkınca can yenilemeyi durdurur
@@ -135,7 +174,15 @@ public class PlayerHealth : MonoBehaviour
         {
             yield return new WaitForSeconds(interval);
             Heal(1);
+
+            // Can yalnizca suda iyilesirken tam dolduysa bildir.
+            if (currentHealth == maxHealth)
+            {
+                OnHealthRestoredInWater?.Invoke();
+            }
         }
+
+        waterHealCoroutine = null;
     }
 
     #endregion

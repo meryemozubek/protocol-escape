@@ -1,4 +1,3 @@
-
 using System.Collections;
 using UnityEngine;
 
@@ -12,6 +11,9 @@ public class TrainingPlayerPassSimulator : MonoBehaviour
     public bool HasPlayerPassed { get; private set; }
 
     private Coroutine passCoroutine;
+
+    // Oyuncunun gecisi gercekten bekleniyor mu?
+    public bool IsWaiting => passCoroutine != null && !HasPlayerPassed;
 
     private void OnTriggerEnter2D(Collider2D other)
     {
