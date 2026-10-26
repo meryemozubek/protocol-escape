@@ -1520,6 +1520,7 @@ MonoBehaviour:
   hasUpgradedFromAgentParameters: 1
   MaxStep: 1500
   moveSpeed: 5
+  rewardConfig: {fileID: 11400000, guid: ebfbfb9a6a9f24fa2aada1a3009dc12d, type: 2}
   targetButton: {fileID: 1866116730}
   targetPassSimulator: {fileID: 1866116731}
   targetButton2: {fileID: 1039517725}
