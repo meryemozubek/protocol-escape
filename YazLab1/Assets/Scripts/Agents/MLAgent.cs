@@ -10,6 +10,10 @@ public class MLAgent : Agent
 {
     [SerializeField] private float moveSpeed = 5f;
 
+    [Header("Observation System")]
+    [SerializeField] private Transform[] waterZones;
+    [SerializeField] private float observationRange = 35f;
+
     [Header("Reward System")]
     [SerializeField] private AgentRewardConfig rewardConfig;
 
@@ -135,31 +139,96 @@ public class MLAgent : Agent
         Debug.Log("Yeni episode basladi. Tum gorevler sifirlandi.");
     }
 
-    // Hedef butonun ajana gore konumunu gozlemler.
+    // Ajanin cevre ve gorev bilgilerini gozlemler.
     public override void CollectObservations(VectorSensor sensor)
     {
-        if (currentButtonIndex >= targetButtons.Length)
+        // Siradaki butonun konumu.
+        Vector2 targetDifference = Vector2.zero;
+
+        if (currentButtonIndex < targetButtons.Length &&
+            targetButtons[currentButtonIndex] != null)
         {
-            sensor.AddObservation(0f);
-            sensor.AddObservation(0f);
-            return;
+            targetDifference =
+                (Vector2)targetButtons[currentButtonIndex].position - rb.position;
         }
 
-        Transform currentTarget = targetButtons[currentButtonIndex];
+        sensor.AddObservation(
+            Mathf.Clamp(targetDifference.x / observationRange, -1f, 1f)
+        );
 
-        if (currentTarget == null)
+        sensor.AddObservation(
+            Mathf.Clamp(targetDifference.y / observationRange, -1f, 1f)
+        );
+
+        // En yakin su alanini bul.
+        Vector2 waterDifference = Vector2.zero;
+        float nearestDistance = float.MaxValue;
+        bool waterExists = false;
+
+        if (waterZones != null)
         {
-            sensor.AddObservation(0f);
-            sensor.AddObservation(0f);
-            return;
+            foreach (Transform water in waterZones)
+            {
+                if (water == null)
+                    continue;
+
+                float distance = Vector2.Distance(
+                    rb.position,
+                    water.position
+                );
+
+                if (distance < nearestDistance)
+                {
+                    nearestDistance = distance;
+
+                    waterDifference =
+                        (Vector2)water.position - rb.position;
+
+                    waterExists = true;
+                }
+            }
         }
 
-        Vector2 difference = (Vector2)currentTarget.position - rb.position;
+        // En yakin suyun goreli konumu.
+        sensor.AddObservation(
+            Mathf.Clamp(waterDifference.x / observationRange, -1f, 1f)
+        );
 
-        sensor.AddObservation(difference.x / 20f);
-        sensor.AddObservation(difference.y / 20f);
+        sensor.AddObservation(
+            Mathf.Clamp(waterDifference.y / observationRange, -1f, 1f)
+        );
 
-        // Debug.Log($"Hedef farki: X={difference.x:F2}, Y={difference.y:F2}");
+        // Can ve yanma durumu.
+        float healthRatio = health != null
+            ? (float)health.CurrentHealth / Mathf.Max(1, health.MaxHealth)
+            : 0f;
+
+        sensor.AddObservation(healthRatio);
+
+        sensor.AddObservation(
+            health != null && health.IsBurning ? 1f : 0f
+        );
+
+        // Gorev ilerlemesi.
+        sensor.AddObservation(
+            (float)currentButtonIndex / targetButtons.Length
+        );
+
+        // Dogru butonda bekleme durumu.
+        bool isWaiting = false;
+
+        if (currentButtonIndex < passSimulators.Length)
+        {
+            TrainingPlayerPassSimulator simulator =
+                passSimulators[currentButtonIndex];
+
+            isWaiting = simulator != null && simulator.IsWaiting;
+        }
+
+        sensor.AddObservation(isWaiting ? 1f : 0f);
+
+        // Su referansi mevcut mu?
+        sensor.AddObservation(waterExists ? 1f : 0f);
     }
 
     // Agent'in aksiyonlarini uygular.
@@ -186,7 +255,10 @@ public class MLAgent : Agent
             currentSimulator.HasPlayerPassed &&
             !rewardGiven)
         {
-            float buttonReward = rewardPolicy.GetButtonReward(true, rewardGiven);
+            float buttonReward = rewardPolicy.GetButtonReward(
+                true,
+                rewardGiven
+            );
 
             rewardGiven = true;
 
@@ -202,11 +274,14 @@ public class MLAgent : Agent
             // Son buton tamamlandiysa bolumu bitir.
             if (currentButtonIndex >= targetButtons.Length)
             {
-                float completionReward = rewardPolicy.GetCompletionReward(true);
+                float completionReward =
+                    rewardPolicy.GetCompletionReward(true);
 
                 AddReward(completionReward);
 
-                Debug.Log($"Tum butonlar tamamlandi. Bonus: {completionReward}");
+                Debug.Log(
+                    $"Tum butonlar tamamlandi. Bonus: {completionReward}"
+                );
 
                 EndEpisode();
                 return;
@@ -297,7 +372,9 @@ public class MLAgent : Agent
 
         AddReward(penalty);
 
-        Debug.Log($"Yanarken tekrar atese girdin. Ceza: {penalty}");
+        Debug.Log(
+            $"Yanarken tekrar atese girdin. Ceza: {penalty}"
+        );
     }
 
     // Ajan suyla sondugunde odul ver.
@@ -316,11 +393,14 @@ public class MLAgent : Agent
     // Ajan yanmazken suya girerse ceza ver.
     private void HandleDryWaterEntry()
     {
-        float penalty = rewardPolicy.GetDryWaterEntryPenalty(false);
+        float penalty =
+            rewardPolicy.GetDryWaterEntryPenalty(false);
 
         AddReward(penalty);
 
-        Debug.Log($"Yanmazken suya girdin. Ceza: {penalty}");
+        Debug.Log(
+            $"Yanmazken suya girdin. Ceza: {penalty}"
+        );
     }
 
     // Suda can tamamen doldugunda bir kez odul ver.
@@ -361,7 +441,8 @@ public class MLAgent : Agent
         actions[0] = 0f;
         actions[1] = 0f;
 
-        if (Keyboard.current == null) return;
+        if (Keyboard.current == null)
+            return;
 
         var keyboard = Keyboard.current;
 

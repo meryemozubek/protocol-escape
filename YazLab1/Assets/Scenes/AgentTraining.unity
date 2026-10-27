@@ -270,7 +270,7 @@ GameObject:
   - component: {fileID: 154465627}
   m_Layer: 0
   m_Name: WallTilemap
-  m_TagString: Untagged
+  m_TagString: Wall
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -1333,7 +1333,8 @@ GameObject:
   - component: {fileID: 231256592}
   - component: {fileID: 231256598}
   - component: {fileID: 231256599}
-  m_Layer: 0
+  - component: {fileID: 231256600}
+  m_Layer: 3
   m_Name: ML_Agent
   m_TagString: Agent
   m_Icon: {fileID: 0}
@@ -1357,6 +1358,9 @@ MonoBehaviour:
   hasUpgradedFromAgentParameters: 1
   MaxStep: 1500
   moveSpeed: 5
+  waterZones:
+  - {fileID: 1023573927}
+  observationRange: 35
   rewardConfig: {fileID: 11400000, guid: ebfbfb9a6a9f24fa2aada1a3009dc12d, type: 2}
   targetButton: {fileID: 1866116730}
   targetPassSimulator: {fileID: 1866116731}
@@ -1377,7 +1381,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_BrainParameters:
-    VectorObservationSize: 2
+    VectorObservationSize: 9
     NumStackedVectorObservations: 1
     m_ActionSpec:
       m_NumContinuousActions: 2
@@ -1565,6 +1569,32 @@ MonoBehaviour:
   enableRegen: 0
   regenDelay: 3
   regenInterval: 2
+--- !u!114 &231256600
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 231256591}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f67c7e722ba14acd9153bb4488bff6e4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_SensorName: ObstacleSensor
+  m_DetectableTags:
+  - Wall
+  - Fire
+  m_RaysPerDirection: 4
+  m_MaxRayDegrees: 180
+  m_SphereCastRadius: 0
+  m_RayLength: 6
+  m_RayLayerMask:
+    serializedVersion: 2
+    m_Bits: 4294967233
+  m_ObservationStacks: 1
+  rayHitColor: {r: 1, g: 0, b: 0, a: 1}
+  rayMissColor: {r: 1, g: 1, b: 1, a: 1}
 --- !u!1 &379011906
 GameObject:
   m_ObjectHideFlags: 0
@@ -2122,7 +2152,7 @@ GameObject:
   - component: {fileID: 736298029}
   m_Layer: 0
   m_Name: Fire_01
-  m_TagString: Untagged
+  m_TagString: Fire
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -2265,7 +2295,7 @@ GameObject:
   - component: {fileID: 1023573924}
   m_Layer: 0
   m_Name: Water_01
-  m_TagString: Untagged
+  m_TagString: Water
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
