@@ -5,11 +5,14 @@ TagManager:
   serializedVersion: 2
   tags:
   - Agent
+  - Fire
+  - Wall
+  - Water
   layers:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - 
+  - Agents
   - Water
   - UI
   - 
