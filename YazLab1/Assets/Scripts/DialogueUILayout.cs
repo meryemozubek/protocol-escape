@@ -275,9 +275,9 @@ public class DialogueUILayout : MonoBehaviour
         rect.pivot = new Vector2(0f, 1f);
         rect.anchoredPosition = new Vector2(32f, -24f);
 
-        healthText.fontSize = 21;
+        healthText.fontSize = 35;
         healthText.fontStyle = FontStyles.Bold;
-        healthText.color = new Color32(255, 100, 110, 255);
+        healthText.color = new Color32(255, 255, 255, 255);
     }
 
     // ---------------- Aç / Kapat  ----------------
