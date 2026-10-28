@@ -3495,13 +3495,14 @@ GameObject:
   - component: {fileID: 234702368}
   - component: {fileID: 234702370}
   - component: {fileID: 234702369}
+  - component: {fileID: 234702371}
   m_Layer: 5
   m_Name: HowToPlayPanel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &234702368
 RectTransform:
   m_ObjectHideFlags: 0
@@ -3509,13 +3510,13 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 234702367}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 795186506}
-  m_Father: {fileID: 905039971}
+  - {fileID: 767681343}
+  m_Father: {fileID: 1171067899}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
@@ -3535,7 +3536,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 0.392}
+  m_Color: {r: 0, g: 0, b: 0, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -3560,6 +3561,24 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 234702367}
   m_CullTransparentMesh: 1
+--- !u!114 &234702371
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 234702367}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa231edfdde52b2428073351cf6ee121, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  howToPlayPanel: {fileID: 234702367}
+  guideImage: {fileID: 767681343}
+  returnPanel: {fileID: 905039970}
+  fixAspectRatio: 1
+  closeWithEscape: 1
+  showDebugAreas: 0
 --- !u!1 &243784735
 GameObject:
   m_ObjectHideFlags: 0
@@ -5523,7 +5542,7 @@ MonoBehaviour:
   m_EffectColor: {r: 0.21960784, g: 0.7411765, b: 0.972549, a: 0.7058824}
   m_EffectDistance: {x: 2, y: -2}
   m_UseGraphicAlpha: 1
---- !u!1 &795186505
+--- !u!1 &767681342
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -5531,23 +5550,24 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 795186506}
-  - component: {fileID: 795186508}
-  - component: {fileID: 795186507}
+  - component: {fileID: 767681343}
+  - component: {fileID: 767681346}
+  - component: {fileID: 767681345}
+  - component: {fileID: 767681344}
   m_Layer: 5
-  m_Name: InstructionsText
+  m_Name: TutorialBackground
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!224 &795186506
+--- !u!224 &767681343
 RectTransform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 795186505}
+  m_GameObject: {fileID: 767681342}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
@@ -5555,21 +5575,35 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 234702368}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 200, y: 50}
+  m_SizeDelta: {x: -104, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &795186507
+--- !u!114 &767681344
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 795186505}
+  m_GameObject: {fileID: 767681342}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
+  m_Script: {fileID: 11500000, guid: 86710e43de46f6f4bac7c8e50813a599, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_AspectMode: 3
+  m_AspectRatio: 1.5
+--- !u!114 &767681345
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 767681342}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
@@ -5580,120 +5614,23 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "PROTOCOL: ESCAPE \u2014 NASIL OYNANIR?\nOYUNUN AMACI\nOyuncu olarak temel
-    amac\u0131n\u0131z; y\xFCksek g\xFCvenlikli, karanl\u0131k ve tehlikeli bir Askeri
-    Cyber-Labirent Tesisinden ka\xE7makt\u0131r. Labirentin \xE7\u0131k\u0131\u015F\u0131nda
-    yer alan dev kilitli kap\u0131y\u0131 a\xE7abilmek i\xE7in tesis i\xE7erisindeki
-    bulmacalar\u0131 \xE7\xF6zmeli ve en sondaki Robot G\xFCvenlik Muhaf\u0131z\u0131
-    (LLM NPC) ile ileti\u015Fim kurarak ge\xE7i\u015F izni almal\u0131s\u0131n\u0131z.\n\nKONTROLLER\nY\xF6n
-    Tu\u015Flar\u0131 / WASD: Karakteri labirent i\xE7inde hareket ettirir.\n\nFare
-    (Mouse): Aray\xFCz butonlar\u0131n\u0131 t\u0131klamak ve diyalog kutusuyla etkile\u015Fime
-    ge\xE7mek i\xE7in kullan\u0131l\u0131r.\n\nEnter: Diyalog ekran\u0131nda mesaj\u0131
-    Robot G\xFCvenlik'e g\xF6ndermek i\xE7in kullan\u0131l\u0131r.\n\nTEMEL OYUN
-    MEKAN\u0130KLER\u0130 VE UNSURLAR\n1. Labirent ve Engeller\nAte\u015F ve Su Tuzaklar\u0131:
-    Labirentin belirli yollar\u0131nda bulunan tehlikeli alanlard\u0131r. Bu alanlardan
-    ge\xE7erken can\u0131n\u0131z d\xFC\u015Febilir, dikkatli ilerlemelisiniz.\n\nKilitli
-    G\xFCvenlik Kap\u0131lar\u0131 (Kap\u0131 1, Kap\u0131 2, Kap\u0131 3): Yolunuzu
-    kesen k\u0131rm\u0131z\u0131 lazerli g\xFCvenlik kap\u0131lar\u0131d\u0131r.\n\n2.
-    \u015Ealterler (Switches) ve ML-Agent Entegrasyonu\nKap\u0131lar\u0131n a\xE7\u0131lmas\u0131
-    i\xE7in haritadaki \u015Ealterlerin (Switch 1, 2, 3) aktif edilmesi gerekir.\n\nHaritada
-    yapay zeka deste\u011Fiyle \xE7al\u0131\u015Fan ML-Agent (Otonom Ajan), do\u011Fru
-    \u015Falterlere basarak kilitli kap\u0131lar\u0131 s\u0131rayla a\xE7ar ve oyuncuya
-    ilerleme yolu sa\u011Flar.\n\n3. Oyun \u0130\xE7i Sa\u011Fl\u0131k / Can Sistemi
-    (Health UI)\nEkran\u0131n sol \xFCst k\xF6\u015Fesinde can g\xF6stergeniz yer
-    al\u0131r.\n\nTuzaklara temas ettik\xE7e can\u0131n\u0131z azal\u0131r. Can\u0131n\u0131z
-    s\u0131f\u0131rland\u0131\u011F\u0131nda b\xF6l\xFCm\xFC yeniden ba\u015Flatman\u0131z
-    gerekir.\n\n4. Son A\u015Fama: Robot G\xFCvenlik (LLM NPC) ve Terminal Diyalo\u011Fu\nLabirentin
-    sonuna ula\u015Ft\u0131\u011F\u0131n\u0131zda kilitli ana kap\u0131n\u0131n \xF6n\xFCndeki
-    NPC Trigger alan\u0131na girersiniz.\n\nBu alana girdi\u011Finizde ekranda G\xDCVENL\u0130K
-    TERM\u0130NAL\u0130 (Dialogue Panel) a\xE7\u0131l\u0131r.\n\nKap\u0131n\u0131n
-    a\xE7\u0131lmas\u0131 i\xE7in yapay zeka altyap\u0131s\u0131na sahip Robot G\xFCvenlik
-    Botuna (Ollama LLM) mant\u0131kl\u0131 gerek\xE7eler veya ikna edici mesajlar
-    yazmal\u0131s\u0131n\u0131z.\n\nRobot G\xFCvenlik mesaj\u0131n\u0131z\u0131 de\u011Ferlendirir;
-    ikna olursa kap\u0131 kilidini a\xE7ar ve protokolden ba\u015Far\u0131yla ka\xE7m\u0131\u015F
-    olursunuz!\n\nADIM ADIM ZAFER REHBER\u0130\nBa\u015Fla: Ana men\xFCden OYUNA
-    BA\u015ELA butonuna t\u0131klayarak ye\u015Fil ba\u015Flang\u0131\xE7 noktas\u0131ndan
-    oyuna girin.\n\n\u0130lerle: Tuzaklara basmadan labirentin koridorlar\u0131nda
-    dikkatlice hareket edin.\n\n\u015Ealterleri Takip Et: ML-Agent'\u0131n kap\u0131lar\u0131
-    a\xE7mas\u0131n\u0131 izleyin ve a\xE7\u0131lan yollardan ilerleyin.\n\nTerminale
-    Ula\u015F: B\xF6l\xFCm sonundaki kap\u0131ya yakla\u015Farak G\xFCvenlik Terminali'ni
-    aktif edin.\n\nRobotu \u0130kna Et: Girdi kutusuna mesaj\u0131n\u0131z\u0131
-    yaz\u0131p G\xD6NDER butonuna bas\u0131n ve tesisten ka\xE7\u0131n!"
-  m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_fontSharedMaterials: []
-  m_fontMaterial: {fileID: 0}
-  m_fontMaterials: []
-  m_fontColor32:
-    serializedVersion: 2
-    rgba: 4294967295
-  m_fontColor: {r: 1, g: 1, b: 1, a: 1}
-  m_enableVertexGradient: 0
-  m_colorMode: 3
-  m_fontColorGradient:
-    topLeft: {r: 1, g: 1, b: 1, a: 1}
-    topRight: {r: 1, g: 1, b: 1, a: 1}
-    bottomLeft: {r: 1, g: 1, b: 1, a: 1}
-    bottomRight: {r: 1, g: 1, b: 1, a: 1}
-  m_fontColorGradientPreset: {fileID: 0}
-  m_spriteAsset: {fileID: 0}
-  m_tintAllSprites: 0
-  m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: -1183493901
-  m_overrideHtmlColors: 0
-  m_faceColor:
-    serializedVersion: 2
-    rgba: 4294967295
-  m_fontSize: 36
-  m_fontSizeBase: 36
-  m_fontWeight: 400
-  m_enableAutoSizing: 0
-  m_fontSizeMin: 18
-  m_fontSizeMax: 72
-  m_fontStyle: 0
-  m_HorizontalAlignment: 1
-  m_VerticalAlignment: 256
-  m_textAlignment: 65535
-  m_characterSpacing: 0
-  m_wordSpacing: 0
-  m_lineSpacing: 0
-  m_lineSpacingMax: 0
-  m_paragraphSpacing: 0
-  m_charWidthMaxAdj: 0
-  m_enableWordWrapping: 1
-  m_wordWrappingRatios: 0.4
-  m_overflowMode: 0
-  m_linkedTextComponent: {fileID: 0}
-  parentLinkedComponent: {fileID: 0}
-  m_enableKerning: 1
-  m_enableExtraPadding: 0
-  checkPaddingRequired: 0
-  m_isRichText: 1
-  m_parseCtrlCharacters: 1
-  m_isOrthographic: 1
-  m_isCullingEnabled: 0
-  m_horizontalMapping: 0
-  m_verticalMapping: 0
-  m_uvLineOffset: 0
-  m_geometrySortingOrder: 0
-  m_IsTextObjectScaleStatic: 0
-  m_VertexBufferAutoSizeReduction: 0
-  m_useMaxVisibleDescender: 1
-  m_pageToDisplay: 1
-  m_margin: {x: 0, y: 0, z: 0, w: 0}
-  m_isUsingLegacyAnimationComponent: 0
-  m_isVolumetricText: 0
-  m_hasFontAssetChanged: 0
-  m_baseMaterial: {fileID: 0}
-  m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
---- !u!222 &795186508
+  m_Sprite: {fileID: 21300000, guid: 856458192503b1a448db8899cc5f828a, type: 3}
+  m_Type: 0
+  m_PreserveAspect: 0
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
+--- !u!222 &767681346
 CanvasRenderer:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 795186505}
+  m_GameObject: {fileID: 767681342}
   m_CullTransparentMesh: 1
 --- !u!1 &834194089
 GameObject:
@@ -5858,7 +5795,6 @@ RectTransform:
   m_Children:
   - {fileID: 1994459121}
   - {fileID: 636077384}
-  - {fileID: 234702368}
   m_Father: {fileID: 1171067899}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -6342,12 +6278,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0cd44c1031e13a943bb63640046fad76, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_UiScaleMode: 0
+  m_UiScaleMode: 1
   m_ReferencePixelsPerUnit: 100
   m_ScaleFactor: 1
-  m_ReferenceResolution: {x: 800, y: 600}
+  m_ReferenceResolution: {x: 1920, y: 1080}
   m_ScreenMatchMode: 0
-  m_MatchWidthOrHeight: 0
+  m_MatchWidthOrHeight: 0.5
   m_PhysicalUnit: 3
   m_FallbackScreenDPI: 96
   m_DefaultSpriteDPI: 96
@@ -6388,6 +6324,7 @@ RectTransform:
   m_LocalScale: {x: 0, y: 0, z: 0}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 234702368}
   - {fileID: 2116438253}
   - {fileID: 2039684228}
   - {fileID: 905039971}
@@ -7528,7 +7465,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1880405914}
   - component: {fileID: 1880405917}
-  - component: {fileID: 1880405916}
   - component: {fileID: 1880405913}
   - component: {fileID: 1880405915}
   m_Layer: 0
@@ -7591,26 +7527,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   mainMenuPanel: {fileID: 905039970}
---- !u!114 &1880405916
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1880405912}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4bb90c2c29eaea243899b6f2a770154c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  mainMenuPanel: {fileID: 0}
-  menuBackground: {fileID: 0}
-  menuCard: {fileID: 0}
-  gameTitleText: {fileID: 0}
-  subtitleText: {fileID: 0}
-  playButton: {fileID: 0}
-  infoButton: {fileID: 0}
-  exitButton: {fileID: 0}
 --- !u!114 &1880405917
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7623,14 +7539,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4bb90c2c29eaea243899b6f2a770154c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mainMenuPanel: {fileID: 0}
-  menuBackground: {fileID: 0}
-  menuCard: {fileID: 0}
-  gameTitleText: {fileID: 0}
-  subtitleText: {fileID: 0}
-  playButton: {fileID: 0}
-  infoButton: {fileID: 0}
-  exitButton: {fileID: 0}
+  mainMenuPanel: {fileID: 905039971}
+  menuBackground: {fileID: 1994459122}
+  menuCard: {fileID: 636077384}
+  gameTitleText: {fileID: 1935346392}
+  subtitleText: {fileID: 266414332}
+  playButton: {fileID: 834194091}
+  infoButton: {fileID: 1931610396}
+  exitButton: {fileID: 41498263}
+  howToPlayPanel: {fileID: 234702367}
 --- !u!1 &1931610394
 GameObject:
   m_ObjectHideFlags: 0
