@@ -1,3 +1,4 @@
+
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Unity.MLAgents;
@@ -163,7 +164,6 @@ public class MLAgent : Agent
         // En yakin su alanini bul.
         Vector2 waterDifference = Vector2.zero;
         float nearestDistance = float.MaxValue;
-        bool waterExists = false;
 
         if (waterZones != null)
         {
@@ -183,8 +183,6 @@ public class MLAgent : Agent
 
                     waterDifference =
                         (Vector2)water.position - rb.position;
-
-                    waterExists = true;
                 }
             }
         }
@@ -226,9 +224,6 @@ public class MLAgent : Agent
         }
 
         sensor.AddObservation(isWaiting ? 1f : 0f);
-
-        // Su referansi mevcut mu?
-        sensor.AddObservation(waterExists ? 1f : 0f);
     }
 
     // Agent'in aksiyonlarini uygular.
