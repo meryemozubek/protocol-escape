@@ -1,6 +1,6 @@
+
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.SceneManagement; // Sahne yükleme/geçiş işlemleri için eklendi
 using TMPro;
 
 [ExecuteAlways]
@@ -19,7 +19,7 @@ public class MainMenuUILayout : MonoBehaviour
     public Button playButton;
     public Button infoButton;
     public Button exitButton;
-    public GameObject howToPlayPanel; // Nasıl Oynanır Ekranı
+    public GameObject howToPlayPanel;
 
     private readonly Color backgroundColor = new Color32(10, 22, 32, 255);
     private readonly Color cardColor = new Color32(15, 35, 47, 245);
@@ -29,8 +29,7 @@ public class MainMenuUILayout : MonoBehaviour
 
     private void Awake()
     {
-        // Oyun başlatıldığında tıklama olaylarını bağla
-        if (Application.isPlaying)
+        if (Application.IsPlaying(gameObject))
         {
             SetupButtonEvents();
         }
@@ -40,10 +39,19 @@ public class MainMenuUILayout : MonoBehaviour
     {
         ApplyLayout();
 
-        // Başlangıçta Nasıl Oynanır panelinin kapalı olduğundan emin ol
-        if (Application.isPlaying && howToPlayPanel != null)
+        if (!Application.IsPlaying(gameObject))
+            return;
+
+        if (howToPlayPanel != null)
         {
             howToPlayPanel.SetActive(false);
+        }
+
+        // TEKRAR DENE ile sahne yeniden yüklendiyse
+        if (GameSession.SkipMenuOnNextLoad)
+        {
+            StartGame();
+            GameSession.SkipMenuOnNextLoad = false;
         }
     }
 
@@ -68,15 +76,16 @@ public class MainMenuUILayout : MonoBehaviour
         }
     }
 
-    // NASIL OYNANIR? Butonuna basılınca çalışır
+    // NASIL OYNANIR?
     public void OpenHowToPlay()
     {
-        if (howToPlayPanel != null) 
+        if (howToPlayPanel != null)
         {
             howToPlayPanel.SetActive(true);
 
-            // Panelin tam ekran yayılmasını ve arkadaki haritayı kapatmasını garantiye alalım
-            RectTransform panelRect = howToPlayPanel.GetComponent<RectTransform>();
+            RectTransform panelRect =
+                howToPlayPanel.GetComponent<RectTransform>();
+
             if (panelRect != null)
             {
                 panelRect.anchorMin = Vector2.zero;
@@ -85,31 +94,43 @@ public class MainMenuUILayout : MonoBehaviour
                 panelRect.offsetMax = Vector2.zero;
             }
         }
-        
-        if (mainMenuPanel != null) mainMenuPanel.gameObject.SetActive(false);
+
+        if (mainMenuPanel != null)
+        {
+            mainMenuPanel.gameObject.SetActive(false);
+        }
     }
 
-    // GERİ DÖN Butonuna basılınca çalışır
+    // GERİ DÖN
     public void CloseHowToPlay()
     {
-        if (howToPlayPanel != null) howToPlayPanel.SetActive(false);
-        if (mainMenuPanel != null) mainMenuPanel.gameObject.SetActive(true);
+        if (howToPlayPanel != null)
+        {
+            howToPlayPanel.SetActive(false);
+        }
+
+        if (mainMenuPanel != null)
+        {
+            mainMenuPanel.gameObject.SetActive(true);
+        }
     }
 
     // OYUNA BAŞLA
     public void StartGame()
     {
-        // 1. Tüm menü panellerini kapat
-        if (mainMenuPanel != null) mainMenuPanel.gameObject.SetActive(false);
-        if (howToPlayPanel != null) howToPlayPanel.SetActive(false);
-        
-        // 2. Zamanı ve oyunu başlat (Eğer durdurulduysa)
+        if (mainMenuPanel != null)
+        {
+            mainMenuPanel.gameObject.SetActive(false);
+        }
+
+        if (howToPlayPanel != null)
+        {
+            howToPlayPanel.SetActive(false);
+        }
+
         Time.timeScale = 1f;
 
         Debug.Log("PROTOCOL: ESCAPE oyunu baslatildi!");
-
-        // NOT: Eğer oyun alanın ayrı bir sahnedeyse alttaki satırın yorumunu kaldırıp sahne adını yazabilirsin:
-        // SceneManager.LoadScene("MazeScene");
     }
 
     // ÇIKIŞ
@@ -152,12 +173,14 @@ public class MainMenuUILayout : MonoBehaviour
             menuCard.sizeDelta = new Vector2(600f, 620f);
 
             Image cardImage = menuCard.GetComponent<Image>();
+
             if (cardImage != null)
             {
                 cardImage.color = cardColor;
             }
 
             Outline cardOutline = menuCard.GetComponent<Outline>();
+
             if (cardOutline == null)
             {
                 cardOutline = menuCard.gameObject.AddComponent<Outline>();
@@ -178,7 +201,9 @@ public class MainMenuUILayout : MonoBehaviour
             titleRect.anchoredPosition = new Vector2(0f, 190f);
             titleRect.sizeDelta = new Vector2(560f, 150f);
 
-            gameTitleText.text = "PROTOCOL:\n<color=#4ADE80>ESCAPE</color>";
+            gameTitleText.text =
+                "PROTOCOL:\n<color=#4ADE80>ESCAPE</color>";
+
             gameTitleText.fontSize = 58;
             gameTitleText.fontStyle = FontStyles.Bold;
             gameTitleText.alignment = TextAlignmentOptions.Center;
@@ -208,14 +233,48 @@ public class MainMenuUILayout : MonoBehaviour
         }
 
         // MENÜ BUTONLARI
-        StyleButton(playButton, "OYUNA BAŞLA", new Vector2(0f, 10f), new Vector2(360f, 60f), neonGreen, new Color32(7, 18, 12, 255), true);
-        StyleButton(infoButton, "NASIL OYNANIR?", new Vector2(0f, -65f), new Vector2(360f, 52f), new Color32(23, 33, 43, 255), lightText, false);
-        StyleButton(exitButton, "ÇIKIŞ", new Vector2(0f, -132f), new Vector2(360f, 52f), new Color32(23, 33, 43, 255), mutedText, false);
+        StyleButton(
+            playButton,
+            "OYUNA BAŞLA",
+            new Vector2(0f, 10f),
+            new Vector2(360f, 60f),
+            neonGreen,
+            new Color32(7, 18, 12, 255),
+            true
+        );
+
+        StyleButton(
+            infoButton,
+            "NASIL OYNANIR?",
+            new Vector2(0f, -65f),
+            new Vector2(360f, 52f),
+            new Color32(23, 33, 43, 255),
+            lightText,
+            false
+        );
+
+        StyleButton(
+            exitButton,
+            "ÇIKIŞ",
+            new Vector2(0f, -132f),
+            new Vector2(360f, 52f),
+            new Color32(23, 33, 43, 255),
+            mutedText,
+            false
+        );
     }
 
-    private void StyleButton(Button button, string label, Vector2 position, Vector2 size, Color buttonColor, Color textColor, bool isPrimary)
+    private void StyleButton(
+        Button button,
+        string label,
+        Vector2 position,
+        Vector2 size,
+        Color buttonColor,
+        Color textColor,
+        bool isPrimary)
     {
-        if (button == null || menuCard == null) return;
+        if (button == null || menuCard == null)
+            return;
 
         RectTransform rect = button.GetComponent<RectTransform>();
         rect.SetParent(menuCard, false);
@@ -226,12 +285,15 @@ public class MainMenuUILayout : MonoBehaviour
         rect.sizeDelta = size;
 
         Image buttonImage = button.GetComponent<Image>();
+
         if (buttonImage != null)
         {
             buttonImage.color = buttonColor;
         }
 
-        TMP_Text buttonText = button.GetComponentInChildren<TMP_Text>(true);
+        TMP_Text buttonText =
+            button.GetComponentInChildren<TMP_Text>(true);
+
         if (buttonText != null)
         {
             buttonText.text = label;
