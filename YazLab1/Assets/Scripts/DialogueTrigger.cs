@@ -5,7 +5,7 @@ using UnityEngine;
 public class DialogueTrigger : MonoBehaviour
 {
     [Header("Referanslar")]
-    [SerializeField] private DialogueUILayout dialogueUI;
+    [SerializeField] private GameObject argusPanel;
 
     [Header("Ayarlar")]
     [SerializeField] private string playerTag = "Player";
@@ -13,8 +13,8 @@ public class DialogueTrigger : MonoBehaviour
 
     private void Reset()
     {
-        Collider2D collider = GetComponent<Collider2D>();
-        collider.isTrigger = true;
+        Collider2D col = GetComponent<Collider2D>();
+        col.isTrigger = true;
     }
 
     private void OnTriggerEnter2D(Collider2D other)
@@ -24,17 +24,15 @@ public class DialogueTrigger : MonoBehaviour
 
         Debug.Log("OYUNCU NPC ALANINA GİRDİ!");
 
-        if (dialogueUI == null)
+        if (argusPanel == null)
         {
-            Debug.LogWarning(
-                "DialogueTrigger: DialogueUILayout atanmamış!"
-            );
+            Debug.LogWarning("ARGUS paneli atanmamış!");
             return;
         }
 
-        dialogueUI.ShowDialoguePanel();
+        argusPanel.SetActive(true);
 
-        Debug.Log("DialoguePanel açma komutu gönderildi!");
+        Debug.Log("ARGUS paneli açıldı!");
     }
 
     private void OnTriggerExit2D(Collider2D other)
@@ -42,7 +40,7 @@ public class DialogueTrigger : MonoBehaviour
         if (!hideOnExit || !other.CompareTag(playerTag))
             return;
 
-        if (dialogueUI != null)
-            dialogueUI.HideDialoguePanel();
+        if (argusPanel != null)
+            argusPanel.SetActive(false);
     }
 }
