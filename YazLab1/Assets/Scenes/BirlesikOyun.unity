@@ -1066,8 +1066,6 @@ MonoBehaviour:
   dialogueUI: {fileID: 1880405913}
   playerTag: Player
   hideOnExit: 0
-  testNearPlayer: 1
-  testOffset: {x: 2, y: 0}
 --- !u!61 &271939276
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -1111,7 +1109,7 @@ BoxCollider2D:
     adaptiveTiling: 0
   m_AutoTiling: 0
   serializedVersion: 2
-  m_Size: {x: 4, y: 4}
+  m_Size: {x: 2, y: 2}
   m_EdgeRadius: 0
 --- !u!4 &271939277
 Transform:
@@ -1122,7 +1120,7 @@ Transform:
   m_GameObject: {fileID: 271939273}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -5, y: 7.13, z: 0}
+  m_LocalPosition: {x: 14.48, y: -8.15, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
