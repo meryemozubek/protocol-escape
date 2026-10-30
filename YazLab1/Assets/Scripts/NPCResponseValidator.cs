@@ -9,8 +9,8 @@ using UnityEngine;
 public static class NPCResponseValidator
 {
     private const int MaxRoleLength = 60;
-    private const int MaxDialogueLength = 120;
-    private const int MaxSentences = 2;
+    private const int MaxDialogueLength = 200;
+    private const int MaxSentences = 3;
 
     private static readonly HashSet<string> EnglishWords =
         new HashSet<string>
