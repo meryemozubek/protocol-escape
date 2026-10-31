@@ -9,13 +9,11 @@ class Actor(nn.Module):
         super().__init__()
 
         self.fc1 = nn.Linear(9 * 4 + 8, 128)
-
-        self.relu = nn.ReLU()
-
         self.fc2 = nn.Linear(128, 128)
-
         self.fc3 = nn.Linear(128, 2)
-
+        
+        self.relu = nn.ReLU()
+        
         self.std_parameter = nn.Parameter(torch.zeros(2)) # X ve Y icin standart sapma parametreleri.
         
         
@@ -28,7 +26,6 @@ class Actor(nn.Module):
         x = self.relu(x)
 
         mean = self.fc3(x)
-
         std = torch.exp(self.std_parameter) # Standart sapmayi pozitif tutar, gradyan descent'i de kolay hesaplanir.
 
         return mean, std
@@ -37,9 +34,8 @@ class Actor(nn.Module):
     def get_action(self, x):
 
         mean, std = self.forward(x)
-    
         normal = Normal(mean, std)
-    
+
         dist = TransformedDistribution(  # Hareket dagilimini -1 ile 1 arasina sinirla.
             normal, [TanhTransform(cache_size=1)]
         )
