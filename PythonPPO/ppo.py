@@ -25,13 +25,12 @@ class PPO:
 
         self.gamma = 0.99         # Gelecekteki odullarin onemi.
         
-        self.gae_lambda = 0.95    # Odullerin onceki adimlara etkisi.
+        self.gae_lambda = 0.95    # Monte Carlo yontemi yapilabilir. 0.95 -> 1
         
-        self.clip_epsilon = 0.2   # Actor'un bir anda cok degismesini engeller.
+        self.clip_epsilon = 0.2   # 0.2 -> 0.1 yapilabilir.
         
         self.update_epochs = 10   # Ayni veriye kac kez bakilacak?
         
-        self.batch_size = 64      # Bir seferde kac hareket kullanilacak?
         self.buffer = RolloutBuffer()
 
     def remember(self, observation, action, log_prob, reward, next_observation,
@@ -77,32 +76,31 @@ class PPO:
             advantages = (advantages - advantages.mean()) / (advantages.std(unbiased=False) + 1e-8)
 
         policy_losses, value_losses = [], []
-        # Hareketleri karistir ve kucuk gruplarla egit.
+        # Her epoch boyunca rollout verisinin tamamiyla egit.
         for _ in range(self.update_epochs):
-            for indices in torch.randperm(len(rewards), device=self.device).split(self.batch_size):
-                mean, std = self.actor(states[indices])
-                normal = Normal(mean, std)
-                distribution = TransformedDistribution(normal, [TanhTransform(cache_size=1)])
-                new_log_probs = distribution.log_prob(actions[indices]).sum(dim=-1)
+            mean, std = self.actor(states)
+            normal = Normal(mean, std)
+            distribution = TransformedDistribution(normal, [TanhTransform(cache_size=1)])
+            new_log_probs = distribution.log_prob(actions).sum(dim=-1)
 
-                # Bu hareketin eski ve yeni olasiligini karsilastir.
-                ratio = torch.exp(new_log_probs - old_log_probs[indices])
-                unclipped = ratio * advantages[indices]
-                clipped = ratio.clamp(1 - self.clip_epsilon, 1 + self.clip_epsilon) * advantages[indices]
-                policy_loss = -torch.minimum(unclipped, clipped).mean()
+            # Bu hareketin eski ve yeni olasiligini karsilastir.
+            ratio = torch.exp(new_log_probs - old_log_probs)
+            unclipped = ratio * advantages
+            clipped = ratio.clamp(1 - self.clip_epsilon, 1 + self.clip_epsilon) * advantages
+            policy_loss = -torch.minimum(unclipped, clipped).mean()
 
-                # Critic'in tahmin hatasini hesapla.
-                value_loss = (self.critic(states[indices]) - returns[indices]).square().mean()
-                loss = policy_loss + 0.5 * value_loss
+            # Critic'in tahmin hatasini hesapla.
+            value_loss = (self.critic(states) - returns).square().mean()
+            loss = policy_loss + 0.5 * value_loss
 
-                # Actor ve critic'i guncelle.
-                self.optimizer.zero_grad()
-                loss.backward()
-                nn.utils.clip_grad_norm_(self.parameters, 0.5)
-                self.optimizer.step()
+            # Actor ve critic'i guncelle.
+            self.optimizer.zero_grad()
+            loss.backward()
+            nn.utils.clip_grad_norm_(self.parameters, 0.5)
+            self.optimizer.step()
 
-                policy_losses.append(policy_loss.item())
-                value_losses.append(value_loss.item())
+            policy_losses.append(policy_loss.item())
+            value_losses.append(value_loss.item())
 
         # Sonraki egitim icin buffer'i bosalt.
         self.buffer.clear()
