@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using UnityEngine;
 
@@ -9,6 +10,7 @@ public class TrainingPlayerPassSimulator : MonoBehaviour
 
     // Oyuncunun kapidan gecip gecmedigini belirtir.
     public bool HasPlayerPassed { get; private set; }
+    public event Action<TrainingPlayerPassSimulator> OnEarlyExit;
 
     private Coroutine passCoroutine;
 
@@ -29,7 +31,7 @@ public class TrainingPlayerPassSimulator : MonoBehaviour
     private IEnumerator SimulatePlayerPass()
     {
         // 0-10 saniye arasinda rastgele sure belirlenir.
-        float delay = Random.Range(minDelay, maxDelay);
+        float delay = UnityEngine.Random.Range(minDelay, maxDelay);
 
         Debug.Log($"Oyuncunun gecisi bekleniyor. Sure: {delay:F2} saniye.");
 
@@ -52,6 +54,7 @@ public class TrainingPlayerPassSimulator : MonoBehaviour
         {
             StopCoroutine(passCoroutine);
             passCoroutine = null;
+            OnEarlyExit?.Invoke(this);
 
             Debug.Log("ML-Agent butondan erken ayrildi. Gecis iptal edildi.");
         }

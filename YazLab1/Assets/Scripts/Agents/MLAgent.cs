@@ -10,6 +10,8 @@ using Unity.MLAgents.Sensors;
 public class MLAgent : Agent
 {
     [SerializeField] private float moveSpeed = 5f;
+    private const float approachCheckInterval = 0.5f;
+    private const float minApproachDistance = 0.1f;
 
     [Header("Observation System")]
     [SerializeField] private Transform[] waterZones;
@@ -41,6 +43,8 @@ public class MLAgent : Agent
     private Vector2 startPosition;
     private int currentButtonIndex;
     private bool rewardGiven;
+    private float approachTimer;
+    private float bestTargetDistance;
 
     private bool fullHealthRewardGiven;
     private float burningPenaltyTimer;
@@ -69,7 +73,10 @@ public class MLAgent : Agent
             rewardConfig.BurningPenaltyPerTick,
             rewardConfig.FullHealthReward,
             rewardConfig.FireReentryPenalty,
-            rewardConfig.DryWaterEntryPenalty
+            rewardConfig.DryWaterEntryPenalty,
+            rewardConfig.WaitingRewardPerSecond,
+            rewardConfig.EarlyExitPenalty,
+            rewardConfig.ApproachReward
         );
 
         // Ajanin ilk konumunu kaydet.
@@ -89,6 +96,12 @@ public class MLAgent : Agent
             targetPassSimulator2,
             targetPassSimulator3
         };
+
+        foreach (TrainingPlayerPassSimulator simulator in passSimulators)
+        {
+            if (simulator != null)
+                simulator.OnEarlyExit += HandleEarlyExit;
+        }
 
         // Ajanin olum olayini dinle.
         if (health != null)
@@ -121,6 +134,7 @@ public class MLAgent : Agent
         rb.velocity = Vector2.zero;
         rb.angularVelocity = 0f;
         rb.position = startPosition;
+        ResetApproachTracking();
 
         // Can ve yanma durumlarini sifirla.
         if (health != null)
@@ -282,6 +296,8 @@ public class MLAgent : Agent
                 return;
             }
 
+            ResetApproachTracking();
+
             // Siradaki butonun onceki gecis bilgisini temizle.
             if (passSimulators[currentButtonIndex] != null)
             {
@@ -292,6 +308,19 @@ public class MLAgent : Agent
 
             Debug.Log(
                 $"Yeni hedef: Button_0{currentButtonIndex + 1}"
+            );
+        }
+    }
+
+    // Yeni hedef icin en iyi mesafeyi bastan olc.
+    private void ResetApproachTracking()
+    {
+        approachTimer = 0f;
+        if (currentButtonIndex < targetButtons.Length &&
+            targetButtons[currentButtonIndex] != null)
+        {
+            bestTargetDistance = Vector2.Distance(
+                rb.position, targetButtons[currentButtonIndex].position
             );
         }
     }
@@ -321,6 +350,31 @@ public class MLAgent : Agent
 
         AddReward(timePenalty);
 
+        // Yalnizca gerekli bekleme surerken saniye basina odul ver.
+        AddReward(rewardPolicy.GetWaitingReward(
+            Time.fixedDeltaTime, waitingAtCorrectButton
+        ));
+
+        // Yarim saniyede bir, onceki en iyi mesafeyi gecip gecmedigine bak.
+        if (currentButtonIndex < targetButtons.Length &&
+            targetButtons[currentButtonIndex] != null)
+        {
+            approachTimer += Time.fixedDeltaTime;
+            if (approachTimer >= approachCheckInterval)
+            {
+                approachTimer -= approachCheckInterval;
+                float distance = Vector2.Distance(
+                    rb.position, targetButtons[currentButtonIndex].position
+                );
+
+                if (bestTargetDistance - distance >= minApproachDistance)
+                {
+                    AddReward(rewardPolicy.GetApproachReward(true));
+                    bestTargetDistance = distance;
+                }
+            }
+        }
+
         // Yanmiyorsa yanma sayacini sifirla.
         if (!health.IsBurning)
         {
@@ -346,6 +400,18 @@ public class MLAgent : Agent
 
             Debug.Log($"Hala yaniyor! Ceza: {penalty}");
         }
+    }
+
+    // Butondan erken ayrilinca sadece aktif butonun cezasini ver.
+    private void HandleEarlyExit(TrainingPlayerPassSimulator simulator)
+    {
+        if (currentButtonIndex >= passSimulators.Length ||
+            passSimulators[currentButtonIndex] != simulator)
+            return;
+
+        float penalty = rewardPolicy.GetEarlyExitPenalty(currentButtonIndex);
+        AddReward(penalty);
+        Debug.Log($"Buton {currentButtonIndex + 1} erken cikis cezasi: {penalty}");
     }
 
     // Yeni yanma basladiginda ceza ver.
@@ -450,6 +516,15 @@ public class MLAgent : Agent
     // Olum olayinin baglantisini temizle.
     private void OnDestroy()
     {
+        if (passSimulators != null)
+        {
+            foreach (TrainingPlayerPassSimulator simulator in passSimulators)
+            {
+                if (simulator != null)
+                    simulator.OnEarlyExit -= HandleEarlyExit;
+            }
+        }
+
         if (health != null)
         {
             health.OnPlayerDied -= HandleAgentDeath;

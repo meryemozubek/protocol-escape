@@ -14,12 +14,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   buttonReward: 1
   completionReward: 10
-  firePenalty: -1
+  waitingRewardPerSecond: 0.1
+  earlyExitPenalty: -0.25
+  approachReward: 0.01
+  firePenalty: -0.75
   fireReentryPenalty: -0.25
   extinguishReward: 2
   dryWaterEntryPenalty: -0.25
-  burningPenaltyInterval: 0.5
-  burningPenaltyPerTick: -2
+  burningPenaltyInterval: 1
+  burningPenaltyPerTick: -0.5
   fullHealthReward: 0.5
   timePenaltyPerSecond: -0.01
-  deathPenalty: -10
+  deathPenalty: -5

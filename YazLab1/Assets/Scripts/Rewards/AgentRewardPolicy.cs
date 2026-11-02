@@ -13,6 +13,9 @@ public class AgentRewardPolicy
     private readonly float deathPenalty;
     private readonly float burningPenaltyPerTick;
     private readonly float fullHealthReward;
+    private readonly float waitingRewardPerSecond;
+    private readonly float earlyExitPenalty;
+    private readonly float approachReward;
 
     public AgentRewardPolicy(
         float buttonReward,
@@ -24,7 +27,10 @@ public class AgentRewardPolicy
         float burningPenaltyPerTick,
         float fullHealthReward,
         float fireReentryPenalty,
-        float dryWaterEntryPenalty)
+        float dryWaterEntryPenalty,
+        float waitingRewardPerSecond,
+        float earlyExitPenalty,
+        float approachReward)
     {
         this.buttonReward = buttonReward;
         this.completionReward = completionReward;
@@ -36,6 +42,9 @@ public class AgentRewardPolicy
         this.fullHealthReward = fullHealthReward;
         this.fireReentryPenalty = fireReentryPenalty;
         this.dryWaterEntryPenalty = dryWaterEntryPenalty;
+        this.waitingRewardPerSecond = waitingRewardPerSecond;
+        this.earlyExitPenalty = earlyExitPenalty;
+        this.approachReward = approachReward;
     }
 
     // Oyuncunun dogru butondan gecisi tamamlandiginda odul ver
@@ -93,6 +102,26 @@ public class AgentRewardPolicy
             return 0f;
 
         return timePenaltyPerSecond * System.Math.Max(0f, deltaTime);
+    }
+
+    // Dogru butonda bekledigi her saniye icin odul hesapla.
+    public float GetWaitingReward(float deltaTime, bool waitingAtCorrectButton)
+    {
+        return waitingAtCorrectButton
+            ? waitingRewardPerSecond * System.Math.Max(0f, deltaTime)
+            : 0f;
+    }
+
+    // Erken cikis cezasini buton sirasina gore biraz artir.
+    public float GetEarlyExitPenalty(int buttonIndex)
+    {
+        return earlyExitPenalty * (float)System.Math.Pow(1.01, buttonIndex);
+    }
+
+    // Onceki en iyi mesafeyi gecerse yaklasma odulu ver.
+    public float GetApproachReward(bool madeProgress)
+    {
+        return madeProgress ? approachReward : 0f;
     }
 
     // Olum gerceklestiginde ceza ver

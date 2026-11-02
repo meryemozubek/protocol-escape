@@ -10,6 +10,9 @@ public class AgentRewardConfig : ScriptableObject
     [Header("Gorev Odulleri")]
     [SerializeField] private float buttonReward = 1f;
     [SerializeField] private float completionReward = 10f;
+    [SerializeField] private float waitingRewardPerSecond = 0.1f;
+    [SerializeField] private float earlyExitPenalty = -0.25f;
+    [SerializeField] private float approachReward = 0.01f;
 
     [Header("Ates ve Su")]
     [SerializeField] private float firePenalty = -1f;
@@ -30,6 +33,9 @@ public class AgentRewardConfig : ScriptableObject
 
     public float ButtonReward => buttonReward;
     public float CompletionReward => completionReward;
+    public float WaitingRewardPerSecond => waitingRewardPerSecond;
+    public float EarlyExitPenalty => earlyExitPenalty;
+    public float ApproachReward => approachReward;
     public float FirePenalty => firePenalty;
     public float FireReentryPenalty => fireReentryPenalty;
     public float ExtinguishReward => extinguishReward;
