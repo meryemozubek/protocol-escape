@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+// Butona girilince bagli kapiyi ac, cikilinca gecikmeli kapat.
 public class SwitchTrigger : MonoBehaviour
 {
     [Header("Hedef Kapi Baglantisi")]
@@ -24,6 +25,7 @@ public class SwitchTrigger : MonoBehaviour
                 targetDoor.OpenDoor(); 
             }
 
+            // Tek kullanim seciliyse butonu devre disi birak.
             if (destroyOnUse)
             {
                 gameObject.SetActive(false); 

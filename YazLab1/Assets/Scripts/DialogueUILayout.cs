@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
+// Konusma panelinin boyut, renk ve alt eleman yerlesimlerini hazirla.
 public class DialogueUILayout : MonoBehaviour
 {
     [Header("UI Elemanları")]
@@ -51,6 +52,7 @@ public class DialogueUILayout : MonoBehaviour
     }
 
     [ContextMenu("Modern Tasarımı Uygula")]
+    // Panelin her bolumune ayni tasarim ayarlarini uygula.
     public void ApplyLayout()
     {
         if (dialoguePanel == null)
@@ -70,6 +72,7 @@ public class DialogueUILayout : MonoBehaviour
 
     // ---------------- Bölümler ----------------
 
+    // Paneli ekranin alt ortasina yerlestir ve kenarligini ayarla.
     private void StylePanel()
     {
         dialoguePanel.anchorMin = new Vector2(0.5f, 0f);
@@ -91,6 +94,7 @@ public class DialogueUILayout : MonoBehaviour
         outline.effectDistance = new Vector2(1.5f, -1.5f);
     }
 
+    // Baslik yazisini ve altindaki ayirici cizgiyi olustur veya yeniden kullan.
     private void StyleHeader()
     {
         TextMeshProUGUI header = GetOrCreateText(HeaderName, dialoguePanel);
@@ -120,6 +124,7 @@ public class DialogueUILayout : MonoBehaviour
         lineRect.offsetMax = new Vector2(-24f, 1f);
     }
 
+    // Robot cevabinin duracagi karti hazirla; metni kartin icine yerlestir.
     private void StyleMessageCard()
     {
         Image cardImage = GetOrCreateImage(CardName, dialoguePanel);

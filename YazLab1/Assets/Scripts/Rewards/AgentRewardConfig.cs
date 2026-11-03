@@ -1,48 +1,29 @@
 using UnityEngine;
 
 // Odul ve ceza degerlerini Inspector uzerinden yonetir.
-[CreateAssetMenu(
-    fileName = "AgentRewardConfig",
-    menuName = "Protocol Escape/Agent Reward Config"
-)]
+[CreateAssetMenu(fileName = "AgentRewardConfig", menuName = "Protocol Escape/Agent Reward Config")]
 public class AgentRewardConfig : ScriptableObject
 {
-    [Header("Gorev Odulleri")]
-    [SerializeField] private float buttonReward = 1f;
+    // Python bu profil adiyla dogru goreve baglandigini kontrol eder.
+    public const string ProfileId = "button_task_v2";
+    [Header("Gorev tamamlama")]
+    [SerializeField] private float buttonReward = 3f;
+    [SerializeField] private float button2Reward = 5f;
+    [SerializeField] private float button3Reward = 7f;
+    // Uc butonun tamami bittiginde buton odullerine ek olarak verilir.
     [SerializeField] private float completionReward = 10f;
-    [SerializeField] private float waitingRewardPerSecond = 0.1f;
-    [SerializeField] private float earlyExitPenalty = -0.25f;
-    [SerializeField] private float approachReward = 0.01f;
-
-    [Header("Ates ve Su")]
-    [SerializeField] private float firePenalty = -1f;
-    [SerializeField] private float fireReentryPenalty = -1f;
-    [SerializeField] private float extinguishReward = 2f;
-    [SerializeField] private float dryWaterEntryPenalty = -0.25f;
-
-    [Header("Surekli Yanma")]
-    [SerializeField] private float burningPenaltyInterval = 0.5f;
-    [SerializeField] private float burningPenaltyPerTick = -2f;
-
-    [Header("Can Yenileme")]
-    [SerializeField] private float fullHealthReward = 0.5f;
-
-    [Header("Zaman ve Olum")]
-    [SerializeField] private float timePenaltyPerSecond = -0.01f;
-    [SerializeField] private float deathPenalty = -10f;
-
+    [Header("Simulasyon zamani ve ilerleme")]
+    // Hedefe yaklasmayi odullendir; uzaklasma ayni olcekte negatif odul getirir.
+    [SerializeField] private float progressRewardScale = 0.05f;
+    [SerializeField] private float waitingRewardPerSecond = 0.01f;
+    // Gereksiz oyalanmayi azaltmak icin her simulasyon saniyesinde uygulanir.
+    [SerializeField] private float timePenaltyPerSecond = -0.005f;
+    // Inspector degerlerini odul hesabina salt okunur olarak ac.
     public float ButtonReward => buttonReward;
+    public float Button2Reward => button2Reward;
+    public float Button3Reward => button3Reward;
     public float CompletionReward => completionReward;
+    public float ProgressRewardScale => progressRewardScale;
     public float WaitingRewardPerSecond => waitingRewardPerSecond;
-    public float EarlyExitPenalty => earlyExitPenalty;
-    public float ApproachReward => approachReward;
-    public float FirePenalty => firePenalty;
-    public float FireReentryPenalty => fireReentryPenalty;
-    public float ExtinguishReward => extinguishReward;
-    public float DryWaterEntryPenalty => dryWaterEntryPenalty;
-    public float BurningPenaltyInterval => burningPenaltyInterval;
-    public float BurningPenaltyPerTick => burningPenaltyPerTick;
-    public float FullHealthReward => fullHealthReward;
     public float TimePenaltyPerSecond => timePenaltyPerSecond;
-    public float DeathPenalty => deathPenalty;
 }

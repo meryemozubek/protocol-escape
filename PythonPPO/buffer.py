@@ -1,3 +1,4 @@
+# Bir PPO guncellemesine kadar toplanan hareketleri ve sonuclarini tut.
 class RolloutBuffer:
 
     def __init__(self):
@@ -8,7 +9,9 @@ class RolloutBuffer:
         self.log_probs = []
         self.rewards = []
         self.next_observations = []
+        
         self.terminated = []             # Gorev bitti veya ajan oldu mu?
+        
         self.done = []                   # Oyun bolumu bitti mi?
 
 
@@ -25,6 +28,7 @@ class RolloutBuffer:
         self.done.append(done)
 
     def clear(self):
+        
         # Kullanilan bilgileri temizle.
         self.observations.clear()
         self.actions.clear()

@@ -1,542 +1,261 @@
-
+using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Unity.MLAgents;
 using Unity.MLAgents.Actuators;
 using Unity.MLAgents.Sensors;
+using Unity.MLAgents.SideChannels;
 
+// AgentTraining: ates/su icermeyen, sirali uc buton gorevi.
 // ML-Agent hareket ve karar mekanizmasi.
 [RequireComponent(typeof(Rigidbody2D))]
 public class MLAgent : Agent
 {
     [SerializeField] private float moveSpeed = 5f;
-    private const float approachCheckInterval = 0.5f;
-    private const float minApproachDistance = 0.1f;
-
-    [Header("Observation System")]
-    [SerializeField] private Transform[] waterZones;
     [SerializeField] private float observationRange = 35f;
-
-    [Header("Reward System")]
     [SerializeField] private AgentRewardConfig rewardConfig;
-
-    private AgentRewardPolicy rewardPolicy;
-
-    [Header("Birinci Buton")]
     [SerializeField] private Transform targetButton;
     [SerializeField] private TrainingPlayerPassSimulator targetPassSimulator;
-
-    [Header("Ikinci Buton")]
     [SerializeField] private Transform targetButton2;
     [SerializeField] private TrainingPlayerPassSimulator targetPassSimulator2;
-
-    [Header("Ucuncu Buton")]
     [SerializeField] private Transform targetButton3;
     [SerializeField] private TrainingPlayerPassSimulator targetPassSimulator3;
-
     private Rigidbody2D rb;
-    private PlayerHealth health;
-
-    private Transform[] targetButtons;
-    private TrainingPlayerPassSimulator[] passSimulators;
-
+    private Transform[] targets;
+    private TrainingPlayerPassSimulator[] simulators;
+    private AgentRewardPolicy rewards;
+    private TrainingMetricsChannel metrics;
     private Vector2 startPosition;
     private int currentButtonIndex;
-    private bool rewardGiven;
-    private float approachTimer;
-    private float bestTargetDistance;
-
-    private bool fullHealthRewardGiven;
-    private float burningPenaltyTimer;
+    private int unityEpisode;
+    private int[] reachedCounts;
+    private int[] completionCounts;
+    private int[] cancellations;
+    private float[] minimumDistances;
+    private float previousTargetDistance;
+    private float episodeStartTime;
+    private bool ready;
+    private bool hasActed;
+    private bool summarySent;
 
     // Baslangic ayarlari.
     public override void Initialize()
     {
         rb = GetComponent<Rigidbody2D>();
-        health = GetComponent<PlayerHealth>();
-
-        // Odul ayarlarini yukle.
-        if (rewardConfig == null)
-        {
-            Debug.LogError("Reward Config atanmamis.");
-            enabled = false;
-            return;
-        }
-
-        rewardPolicy = new AgentRewardPolicy(
-            rewardConfig.ButtonReward,
-            rewardConfig.CompletionReward,
-            rewardConfig.FirePenalty,
-            rewardConfig.ExtinguishReward,
-            rewardConfig.TimePenaltyPerSecond,
-            rewardConfig.DeathPenalty,
-            rewardConfig.BurningPenaltyPerTick,
-            rewardConfig.FullHealthReward,
-            rewardConfig.FireReentryPenalty,
-            rewardConfig.DryWaterEntryPenalty,
-            rewardConfig.WaitingRewardPerSecond,
-            rewardConfig.EarlyExitPenalty,
-            rewardConfig.ApproachReward
-        );
-
         // Ajanin ilk konumunu kaydet.
         startPosition = rb.position;
-
         // Butonlari gorev sirasina gore kaydet.
-        targetButtons = new Transform[]
+        targets = new[] { targetButton, targetButton2, targetButton3 };
+        simulators = new[] { targetPassSimulator, targetPassSimulator2, targetPassSimulator3 };
+        if (rewardConfig == null) throw new InvalidOperationException("Reward Config atanmamis.");
+        for (int i = 0; i < targets.Length; i++)
         {
-            targetButton,
-            targetButton2,
-            targetButton3
-        };
-
-        passSimulators = new TrainingPlayerPassSimulator[]
-        {
-            targetPassSimulator,
-            targetPassSimulator2,
-            targetPassSimulator3
-        };
-
-        foreach (TrainingPlayerPassSimulator simulator in passSimulators)
-        {
-            if (simulator != null)
-                simulator.OnEarlyExit += HandleEarlyExit;
+            if (targets[i] == null || simulators[i] == null)
+                throw new InvalidOperationException($"Buton {i + 1} referanslari eksik.");
+            // Butona varma ve beklemeden ayrilma olaylarini saymak icin dinlemeye basla.
+            simulators[i].OnAgentReached += HandleReached;
+            simulators[i].OnWaitCancelled += HandleWaitCancelled;
         }
-
-        // Ajanin olum olayini dinle.
-        if (health != null)
-        {
-            health.OnPlayerDied += HandleAgentDeath;
-
-            // Yanma ve sonme olaylarini dinle.
-            health.OnBurnStarted += HandleBurnStarted;
-            health.OnFireReentered += HandleFireReentered;
-            health.OnExtinguished += HandleExtinguished;
-
-            // Su ve can yenileme olaylarini dinle.
-            health.OnWaterEnteredWithoutFire += HandleDryWaterEntry;
-            health.OnHealthRestoredInWater += HandleFullHealth;
-        }
+        // Odul ayarlarini yukle.
+        rewards = new AgentRewardPolicy(rewardConfig.ButtonReward, rewardConfig.Button2Reward,
+            rewardConfig.Button3Reward, rewardConfig.CompletionReward,
+            rewardConfig.ProgressRewardScale, rewardConfig.WaitingRewardPerSecond,
+            rewardConfig.TimePenaltyPerSecond);
+        // Python ile ayni kimlikteki kanali ac; bolum sonu bilgilerini buradan gonderecegiz.
+        metrics = new TrainingMetricsChannel();
+        metrics.CommandReceived += HandleCommand;
+        SideChannelManager.RegisterSideChannel(metrics);
+        Application.runInBackground = true;
+        ready = true;
     }
 
     // Yeni egitim bolumunu baslatir.
     public override void OnEpisodeBegin()
     {
+        if (!ready) return;
+        // Onceki bolum disaridan kesildiyse normal basari gibi gostermeden bildir.
+        if (hasActed && !summarySent) SendSummary("external_reset");
+        unityEpisode++;
         // Gorev sirasini ve odul bilgisini sifirla.
         currentButtonIndex = 0;
-        rewardGiven = false;
-
-        // Can yenileme odulunu ve yanma sayacini sifirla.
-        fullHealthRewardGiven = false;
-        burningPenaltyTimer = 0f;
-
+        reachedCounts = new int[3]; completionCounts = new int[3]; cancellations = new int[3];
+        minimumDistances = new[] { -1f, -1f, -1f };
+        hasActed = false; summarySent = false;
+        episodeStartTime = Time.fixedTime;
         // Ajanin hareketini durdur ve baslangica dondur.
-        rb.velocity = Vector2.zero;
-        rb.angularVelocity = 0f;
-        rb.position = startPosition;
-        ResetApproachTracking();
-
-        // Can ve yanma durumlarini sifirla.
-        if (health != null)
-        {
-            health.ResetForEpisode();
-        }
-
+        rb.velocity = Vector2.zero; rb.angularVelocity = 0f; rb.position = startPosition;
         // Uc butonun gecis bilgilerini sifirla.
-        foreach (TrainingPlayerPassSimulator simulator in passSimulators)
-        {
-            if (simulator != null)
-            {
-                simulator.ResetForEpisode();
-            }
-        }
-
-        Debug.Log("Yeni episode basladi. Tum gorevler sifirlandi.");
+        foreach (var simulator in simulators) simulator.ResetForEpisode();
+        // Ilk butonla basla; digerleri sira kendilerine gelene kadar gorevi tamamlayamaz.
+        simulators[0].SetTaskActive(true);
+        ResetTargetDistance();
+        SendEnvironmentInfo();
     }
 
     // Ajanin cevre ve gorev bilgilerini gozlemler.
     public override void CollectObservations(VectorSensor sensor)
     {
         // Siradaki butonun konumu.
-        Vector2 targetDifference = Vector2.zero;
-
-        if (currentButtonIndex < targetButtons.Length &&
-            targetButtons[currentButtonIndex] != null)
-        {
-            targetDifference =
-                (Vector2)targetButtons[currentButtonIndex].position - rb.position;
-        }
-
-        sensor.AddObservation(
-            Mathf.Clamp(targetDifference.x / observationRange, -1f, 1f)
-        );
-
-        sensor.AddObservation(
-            Mathf.Clamp(targetDifference.y / observationRange, -1f, 1f)
-        );
-
-        // En yakin su alanini bul.
-        Vector2 waterDifference = Vector2.zero;
-        float nearestDistance = float.MaxValue;
-
-        if (waterZones != null)
-        {
-            foreach (Transform water in waterZones)
-            {
-                if (water == null)
-                    continue;
-
-                float distance = Vector2.Distance(
-                    rb.position,
-                    water.position
-                );
-
-                if (distance < nearestDistance)
-                {
-                    nearestDistance = distance;
-
-                    waterDifference =
-                        (Vector2)water.position - rb.position;
-                }
-            }
-        }
-
-        // En yakin suyun goreli konumu.
-        sensor.AddObservation(
-            Mathf.Clamp(waterDifference.x / observationRange, -1f, 1f)
-        );
-
-        sensor.AddObservation(
-            Mathf.Clamp(waterDifference.y / observationRange, -1f, 1f)
-        );
-
-        // Can ve yanma durumu.
-        float healthRatio = health != null
-            ? (float)health.CurrentHealth / Mathf.Max(1, health.MaxHealth)
-            : 0f;
-
-        sensor.AddObservation(healthRatio);
-
-        sensor.AddObservation(
-            health != null && health.IsBurning ? 1f : 0f
-        );
-
+        Vector2 difference = currentButtonIndex < targets.Length
+            ? (Vector2)targets[currentButtonIndex].position - rb.position : Vector2.zero;
+        float range = Mathf.Max(0.001f, observationRange);
+        // Uzakliklari benzer olcege getir; isin gozlemleri ayri sensor tarafindan eklenir.
+        sensor.AddObservation(Mathf.Clamp(difference.x / range, -1f, 1f));
+        sensor.AddObservation(Mathf.Clamp(difference.y / range, -1f, 1f));
         // Gorev ilerlemesi.
-        sensor.AddObservation(
-            (float)currentButtonIndex / targetButtons.Length
-        );
-
+        sensor.AddObservation((float)currentButtonIndex / targets.Length);
         // Dogru butonda bekleme durumu.
-        bool isWaiting = false;
-
-        if (currentButtonIndex < passSimulators.Length)
-        {
-            TrainingPlayerPassSimulator simulator =
-                passSimulators[currentButtonIndex];
-
-            isWaiting = simulator != null && simulator.IsWaiting;
-        }
-
-        sensor.AddObservation(isWaiting ? 1f : 0f);
+        sensor.AddObservation(IsWaitingAtTarget() ? 1f : 0f);
     }
 
     // Agent'in aksiyonlarini uygular.
     public override void OnActionReceived(ActionBuffers actions)
     {
-        float x = actions.ContinuousActions[0];
-        float y = actions.ContinuousActions[1];
-
-        Vector2 direction = new Vector2(x, y);
-        direction = Vector2.ClampMagnitude(direction, 1f);
-
-        rb.MovePosition(
-            rb.position + direction * moveSpeed * Time.fixedDeltaTime
-        );
-
+        if (!ready || summarySent) return;
+        hasActed = true;
         // Siradaki butonun gecis durumunu kontrol et.
-        if (currentButtonIndex >= passSimulators.Length)
-            return;
-
-        TrainingPlayerPassSimulator currentSimulator =
-            passSimulators[currentButtonIndex];
-
-        if (currentSimulator != null &&
-            currentSimulator.HasPlayerPassed &&
-            !rewardGiven)
+        if (currentButtonIndex < simulators.Length && simulators[currentButtonIndex].HasPlayerPassed)
         {
-            float buttonReward = rewardPolicy.GetButtonReward(
-                true,
-                rewardGiven
-            );
-
-            rewardGiven = true;
-
-            AddReward(buttonReward);
-
-            Debug.Log(
-                $"Buton {currentButtonIndex + 1} tamamlandi. Odul: {buttonReward}"
-            );
-
+            AddReward(rewards.GetButtonReward(currentButtonIndex, completionCounts[currentButtonIndex] > 0));
+            // Buton tamamlanmasini bir kez say ve sonraki hedefe gec.
+            completionCounts[currentButtonIndex] = 1;
+            simulators[currentButtonIndex].SetTaskActive(false);
             // Siradaki goreve gec.
             currentButtonIndex++;
-
             // Son buton tamamlandiysa bolumu bitir.
-            if (currentButtonIndex >= targetButtons.Length)
+            if (currentButtonIndex == targets.Length)
             {
-                float completionReward =
-                    rewardPolicy.GetCompletionReward(true);
-
-                AddReward(completionReward);
-
-                Debug.Log(
-                    $"Tum butonlar tamamlandi. Bonus: {completionReward}"
-                );
-
-                EndEpisode();
+                AddReward(rewards.GetCompletionReward(true));
+                FinishEpisode("completed", false);
                 return;
             }
-
-            ResetApproachTracking();
-
-            // Siradaki butonun onceki gecis bilgisini temizle.
-            if (passSimulators[currentButtonIndex] != null)
-            {
-                passSimulators[currentButtonIndex].ResetForEpisode();
-            }
-
-            rewardGiven = false;
-
-            Debug.Log(
-                $"Yeni hedef: Button_0{currentButtonIndex + 1}"
-            );
+            // Yeni hedef ve teleport uzakliginin sicramasi shaping odulu uretmez.
+            ResetTargetDistance();
+            simulators[currentButtonIndex].SetTaskActive(true);
         }
-    }
-
-    // Yeni hedef icin en iyi mesafeyi bastan olc.
-    private void ResetApproachTracking()
-    {
-        approachTimer = 0f;
-        if (currentButtonIndex < targetButtons.Length &&
-            targetButtons[currentButtonIndex] != null)
+        // Native MaxStep ile ayni sinir; terminalden once telemetriyi kuyruklar.
+        if (MaxStep > 0 && StepCount >= MaxStep)
         {
-            bestTargetDistance = Vector2.Distance(
-                rb.position, targetButtons[currentButtonIndex].position
-            );
+            FinishEpisode("max_step", true);
+            return;
         }
+        // Capraz hareketin hizini sinirla; iki eksende birden gitmek daha hizli olmasin.
+        Vector2 direction = Vector2.ClampMagnitude(
+            new Vector2(actions.ContinuousActions[0], actions.ContinuousActions[1]), 1f);
+        rb.MovePosition(rb.position + direction * moveSpeed * Time.fixedDeltaTime);
     }
 
     // Fizik zamanina gore surekli odul ve cezalari uygula.
     private void FixedUpdate()
     {
-        if (rewardPolicy == null || health == null)
-            return;
-
-        // Dogru butonda oyuncu bekleniyorsa zaman cezasi verme.
-        bool waitingAtCorrectButton = false;
-
-        if (currentButtonIndex < passSimulators.Length)
-        {
-            TrainingPlayerPassSimulator currentSimulator =
-                passSimulators[currentButtonIndex];
-
-            waitingAtCorrectButton =
-                currentSimulator != null && currentSimulator.IsWaiting;
-        }
-
-        float timePenalty = rewardPolicy.GetTimePenalty(
-            Time.fixedDeltaTime,
-            waitingAtCorrectButton
-        );
-
-        AddReward(timePenalty);
-
+        if (!ready || !hasActed || summarySent || currentButtonIndex >= targets.Length) return;
+        // Gerceklesmis fizik hareketinin ilerleme odulu yalnizca burada hesaplanir.
+        float distance = Vector2.Distance(rb.position, targets[currentButtonIndex].position);
+        AddReward(rewards.GetProgressReward(previousTargetDistance, distance));
+        previousTargetDistance = distance;
+        minimumDistances[currentButtonIndex] = Mathf.Min(minimumDistances[currentButtonIndex], distance);
+        AddReward(rewards.GetTimePenalty(Time.fixedDeltaTime));
         // Yalnizca gerekli bekleme surerken saniye basina odul ver.
-        AddReward(rewardPolicy.GetWaitingReward(
-            Time.fixedDeltaTime, waitingAtCorrectButton
-        ));
+        AddReward(rewards.GetWaitingReward(Time.fixedDeltaTime, IsWaitingAtTarget()));
+    }
 
-        // Yarim saniyede bir, onceki en iyi mesafeyi gecip gecmedigine bak.
-        if (currentButtonIndex < targetButtons.Length &&
-            targetButtons[currentButtonIndex] != null)
+    private bool IsWaitingAtTarget()
+    {
+        return currentButtonIndex < simulators.Length && simulators[currentButtonIndex].IsWaiting;
+    }
+    // Yeni hedefin uzakligini baslangic al; hedef degisimi sahte ilerleme odulu uretmesin.
+    private void ResetTargetDistance()
+    {
+        previousTargetDistance = Vector2.Distance(rb.position, targets[currentButtonIndex].position);
+        minimumDistances[currentButtonIndex] = previousTargetDistance;
+    }
+    // Sadece siradaki butona ulasmayi bolum istatistigine ekle.
+    private void HandleReached(TrainingPlayerPassSimulator simulator)
+    {
+        if (currentButtonIndex < simulators.Length && simulators[currentButtonIndex] == simulator)
+            reachedCounts[currentButtonIndex]++;
+    }
+    // Siradaki butondan erken ayrilma sayisini kaydet.
+    private void HandleWaitCancelled(TrainingPlayerPassSimulator simulator)
+    {
+        if (currentButtonIndex < simulators.Length && simulators[currentButtonIndex] == simulator)
+            cancellations[currentButtonIndex]++;
+    }
+    // Once sonucu Pythona gonder; sonra basari veya zaman asimi olarak bolumu bitir.
+    private void FinishEpisode(string reason, bool interrupted)
+    {
+        SendSummary(reason);
+        if (interrupted) EpisodeInterrupted(); else EndEpisode();
+    }
+    // Tamamlanan butonlari, bekleme iptallerini ve simulasyon suresini paketle.
+    private void SendSummary(string reason)
+    {
+        summarySent = true;
+        metrics.Send(new TrainingEpisodeSummary {
+            unity_episode = unityEpisode, completed_buttons = currentButtonIndex,
+            reached_counts = (int[])reachedCounts.Clone(),
+            completion_counts = (int[])completionCounts.Clone(),
+            wait_cancellations = (int[])cancellations.Clone(),
+            minimum_target_distances = (float[])minimumDistances.Clone(),
+            simulation_seconds = Mathf.Max(0f, Time.fixedTime - episodeStartTime),
+            termination_reason = reason
+        });
+        Debug.Log($"[ButtonTask] Bolum {unityEpisode}: buton={currentButtonIndex}/3, neden={reason}");
+    }
+    // Pythonun model uyumlulugunu denetleyebilmesi icin gercek sahne ayarlarini gonder.
+    private void SendEnvironmentInfo()
+    {
+        var requester = GetComponent<DecisionRequester>();
+        var minimum = new float[3]; var maximum = new float[3];
+        var x = new float[3]; var y = new float[3];
+        for (int i = 0; i < 3; i++)
         {
-            approachTimer += Time.fixedDeltaTime;
-            if (approachTimer >= approachCheckInterval)
-            {
-                approachTimer -= approachCheckInterval;
-                float distance = Vector2.Distance(
-                    rb.position, targetButtons[currentButtonIndex].position
-                );
-
-                if (bestTargetDistance - distance >= minApproachDistance)
-                {
-                    AddReward(rewardPolicy.GetApproachReward(true));
-                    bestTargetDistance = distance;
-                }
-            }
+            minimum[i] = simulators[i].MinimumDelay; maximum[i] = simulators[i].MaximumDelay;
+            x[i] = targets[i].position.x; y[i] = targets[i].position.y;
         }
-
-        // Yanmiyorsa yanma sayacini sifirla.
-        if (!health.IsBurning)
+        metrics.Send(new TrainingEnvironmentInfo {
+            max_step = MaxStep, decision_period = requester != null ? requester.DecisionPeriod : 1,
+            fixed_delta_time = Time.fixedDeltaTime, move_speed = moveSpeed,
+            observation_range = observationRange, reward_settings_json = JsonUtility.ToJson(rewardConfig),
+            wait_min = minimum, wait_max = maximum, button_x = x, button_y = y
+        });
+    }
+    // Pythondan gelen bekleme araligi komutunu uc butona da uygula.
+    private void HandleCommand(string json)
+    {
+        var command = JsonUtility.FromJson<TrainingCommand>(json);
+        if (command != null && command.kind == "set_wait_range")
         {
-            burningPenaltyTimer = 0f;
-            return;
-        }
-
-        burningPenaltyTimer += Time.fixedDeltaTime;
-
-        float interval = Mathf.Max(
-            0.01f,
-            rewardConfig.BurningPenaltyInterval
-        );
-
-        // Her tamamlanan yanma periyodunda ceza uygula.
-        while (burningPenaltyTimer >= interval)
-        {
-            burningPenaltyTimer -= interval;
-
-            float penalty = rewardPolicy.GetBurningPenalty();
-
-            AddReward(penalty);
-
-            Debug.Log($"Hala yaniyor! Ceza: {penalty}");
+            foreach (var simulator in simulators) simulator.ConfigureDelays(command.wait_min, command.wait_max);
+            SendEnvironmentInfo();
         }
     }
-
-    // Butondan erken ayrilinca sadece aktif butonun cezasini ver.
-    private void HandleEarlyExit(TrainingPlayerPassSimulator simulator)
-    {
-        if (currentButtonIndex >= passSimulators.Length ||
-            passSimulators[currentButtonIndex] != simulator)
-            return;
-
-        float penalty = rewardPolicy.GetEarlyExitPenalty(currentButtonIndex);
-        AddReward(penalty);
-        Debug.Log($"Buton {currentButtonIndex + 1} erken cikis cezasi: {penalty}");
-    }
-
-    // Yeni yanma basladiginda ceza ver.
-    private void HandleBurnStarted()
-    {
-        burningPenaltyTimer = 0f;
-
-        float firePenalty = rewardPolicy.GetFirePenalty(true);
-
-        AddReward(firePenalty);
-
-        Debug.Log($"Yandin! Ilk ceza: {firePenalty}");
-    }
-
-    // Yaniyorken tekrar atese temas edildiginde ceza ver.
-    private void HandleFireReentered()
-    {
-        float penalty = rewardPolicy.GetFireReentryPenalty(true);
-
-        AddReward(penalty);
-
-        Debug.Log(
-            $"Yanarken tekrar atese girdin. Ceza: {penalty}"
-        );
-    }
-
-    // Ajan suyla sondugunde odul ver.
-    private void HandleExtinguished()
-    {
-        burningPenaltyTimer = 0f;
-
-        float extinguishReward =
-            rewardPolicy.GetExtinguishReward(true, true);
-
-        AddReward(extinguishReward);
-
-        Debug.Log($"Ates sondu! Odul: +{extinguishReward}");
-    }
-
-    // Ajan yanmazken suya girerse ceza ver.
-    private void HandleDryWaterEntry()
-    {
-        float penalty =
-            rewardPolicy.GetDryWaterEntryPenalty(false);
-
-        AddReward(penalty);
-
-        Debug.Log(
-            $"Yanmazken suya girdin. Ceza: {penalty}"
-        );
-    }
-
-    // Suda can tamamen doldugunda bir kez odul ver.
-    private void HandleFullHealth()
-    {
-        float reward = rewardPolicy.GetFullHealthReward(
-            true,
-            fullHealthRewardGiven
-        );
-
-        if (reward == 0f)
-            return;
-
-        fullHealthRewardGiven = true;
-
-        AddReward(reward);
-
-        Debug.Log($"Can tamamen doldu! Odul: +{reward}");
-    }
-
-    // Ajan oldugunde ceza ver ve bolumu bitir.
-    private void HandleAgentDeath()
-    {
-        float deathPenalty = rewardPolicy.GetDeathPenalty();
-
-        AddReward(deathPenalty);
-
-        Debug.Log($"ML-Agent oldu. Ceza: {deathPenalty}");
-
-        EndEpisode();
-    }
-
     // WASD ile manuel kontrol.
     public override void Heuristic(in ActionBuffers actionsOut)
     {
         var actions = actionsOut.ContinuousActions;
-
-        actions[0] = 0f;
-        actions[1] = 0f;
-
-        if (Keyboard.current == null)
-            return;
-
+        actions[0] = 0f; actions[1] = 0f;
         var keyboard = Keyboard.current;
-
+        if (keyboard == null) return;
         if (keyboard.aKey.isPressed) actions[0] = -1f;
         if (keyboard.dKey.isPressed) actions[0] = 1f;
         if (keyboard.sKey.isPressed) actions[1] = -1f;
         if (keyboard.wKey.isPressed) actions[1] = 1f;
     }
-
-    // Olum olayinin baglantisini temizle.
+    // Olay aboneliklerini ve veri kanalini kapat; sonraki oturuma eski baglanti kalmasin.
     private void OnDestroy()
     {
-        if (passSimulators != null)
-        {
-            foreach (TrainingPlayerPassSimulator simulator in passSimulators)
-            {
+        if (simulators != null)
+            foreach (var simulator in simulators)
                 if (simulator != null)
-                    simulator.OnEarlyExit -= HandleEarlyExit;
-            }
-        }
-
-        if (health != null)
+                {
+                    simulator.OnAgentReached -= HandleReached;
+                    simulator.OnWaitCancelled -= HandleWaitCancelled;
+                }
+        if (metrics != null)
         {
-            health.OnPlayerDied -= HandleAgentDeath;
-
-            // Yanma ve sonme olaylarinin baglantisini temizle.
-            health.OnBurnStarted -= HandleBurnStarted;
-            health.OnFireReentered -= HandleFireReentered;
-            health.OnExtinguished -= HandleExtinguished;
-
-            // Su ve can yenileme olaylarinin baglantisini temizle.
-            health.OnWaterEnteredWithoutFire -= HandleDryWaterEntry;
-            health.OnHealthRestoredInWater -= HandleFullHealth;
+            metrics.CommandReceived -= HandleCommand;
+            SideChannelManager.UnregisterSideChannel(metrics);
         }
     }
 }

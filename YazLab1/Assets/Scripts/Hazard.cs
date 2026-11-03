@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+// Tuzaga giren oyuncuya belirlenen miktarda hasar ver.
 public class Hazard : MonoBehaviour
 {
     [Header("Tuzak Ayarları")]

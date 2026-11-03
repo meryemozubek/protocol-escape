@@ -4,6 +4,7 @@ using UnityEngine.SceneManagement; // Sahne yükleme/geçiş işlemleri için ek
 using TMPro;
 
 [ExecuteAlways]
+// Ana menunun yerlesimini ve buton baglantilarini koddan hazirla.
 public class MainMenuUILayout : MonoBehaviour
 {
     [Header("1. Ana Panel")]
@@ -47,6 +48,7 @@ public class MainMenuUILayout : MonoBehaviour
         }
     }
 
+    // Menu butonlarini ilgili acma, baslatma ve cikis islemlerine bagla.
     public void SetupButtonEvents()
     {
         if (playButton != null)

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
+// Bolumun aktif, kazanilmis veya kaybedilmis durumunu yonet.
 public class GameManager : MonoBehaviour
 {
   
@@ -24,6 +25,7 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    // Kazanma bilgisini bir kez isle; sonraki bitis cagrilarini yok say.
     public void WinLevel()
     {
         if (!isGameActive) return;
@@ -31,6 +33,7 @@ public class GameManager : MonoBehaviour
         Debug.Log("Level Completed!");
     }
 
+    // Kaybetme durumunu bildir ve mevcut sahneyi yeniden baslat.
     public void LoseLevel()
     {
         if (!isGameActive) return;

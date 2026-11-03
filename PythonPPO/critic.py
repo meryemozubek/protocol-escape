@@ -1,28 +1,18 @@
 from torch import nn
 
-class Critic(nn.Module):
-    
-    def __init__(self):
-        super().__init__()
 
-        self.fc1 = nn.Linear(9 * 4 + 8, 128)
+# V(s) tahmin eder.
+class Critic(nn.Module):
+    def __init__(self, observation_size=31):
+        super().__init__()
+        self.observation_size = observation_size
         
-        self.relu = nn.ReLU()
-        
-        self.fc2 = nn.Linear(128, 128)
-        
-        self.fc3 = nn.Linear(128, 1)
-        
+        # Actor ile ayni gozlemleri kullan; cikista hareket yerine tek deger uret.
+        self.fc1 = nn.Linear(observation_size, 256)
+        self.fc2 = nn.Linear(256, 256)
+        self.fc3 = nn.Linear(256, 1)
+        self.silu = nn.SiLU()
 
     def forward(self, x):
-        
-        x = self.relu(self.fc1(x))
-        x = self.relu(self.fc2(x))
-
-        value = self.fc3(x)  # V(s) tahmin eder.
-
-        return value.squeeze(-1)  # Sonuclari 2d'den 1d'ye cevirir.
-
-
-
-
+        # Sondaki tek elemanli boyutu kaldir; her durum icin bir tahmin kalsin.
+        return self.fc3(self.silu(self.fc2(self.silu(self.fc1(x))))).squeeze(-1)

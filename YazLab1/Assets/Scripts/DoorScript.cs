@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+// Kapiyi acik ve kapali konumlar arasinda kaydir.
 public class DoorScript : MonoBehaviour
 {
     [Header("Door Settings")]
@@ -14,6 +15,7 @@ public class DoorScript : MonoBehaviour
 
     private void Start()
     {
+        // Sahnedeki ilk konumu kapali konum kabul et; acik konumu buna gore hesapla.
         closedPosition = transform.position;
         targetPosition = isOpen ? (closedPosition + openOffset) : closedPosition;
     }
@@ -38,6 +40,7 @@ public class DoorScript : MonoBehaviour
         Debug.Log("Door closed!");
     }
 
+    // Mevcut duruma gore kapiyi ac veya kapat.
     public void ToggleDoor()
     {
         if (isOpen)

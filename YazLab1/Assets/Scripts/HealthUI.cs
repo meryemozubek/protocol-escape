@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using TMPro; 
 
+// Can degistiginde ekrandaki mevcut ve maksimum can yazisini guncelle.
 public class HealthUI : MonoBehaviour
 {
     [SerializeField] private PlayerHealth playerHealth;
@@ -13,6 +14,7 @@ public class HealthUI : MonoBehaviour
         if (playerHealth != null)
         {
          
+            // Her kare sorgulamak yerine can degisimi olayini dinle.
             playerHealth.OnHealthChanged += UpdateHealthUI;
         }
     }
@@ -22,6 +24,7 @@ public class HealthUI : MonoBehaviour
         if (playerHealth != null)
         {
            
+            // Panel kapaninca aboneligi kaldir; eski nesneye bildirim gitmesin.
             playerHealth.OnHealthChanged -= UpdateHealthUI;
         }
     }

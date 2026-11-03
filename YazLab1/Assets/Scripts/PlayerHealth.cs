@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using UnityEngine;
 
+// Hasar, yanma, su ve iyilesme durumlarini tek can degeri uzerinden yonet.
 public class PlayerHealth : MonoBehaviour
 {
     [Header("Can Ayarları")]
@@ -64,6 +65,7 @@ public class PlayerHealth : MonoBehaviour
         }
     }
 
+    // Can maksimumu gecmesin; olen karakteri iyilesme ile geri getirme.
     public void Heal(int amount)
     {
         if (currentHealth <= 0 || currentHealth >= maxHealth) return;
@@ -214,6 +216,7 @@ public class PlayerHealth : MonoBehaviour
 
     #endregion
 
+    // Hasar sonrasinda kisa sure yeni darbelere karsi koruma sagla.
     private IEnumerator InvulnerabilityRoutine()
     {
         isInvulnerable = true;
@@ -239,6 +242,7 @@ public class PlayerHealth : MonoBehaviour
         OnHealthChanged?.Invoke(currentHealth, maxHealth);
     }
 
+    // Can bittiginde devam eden etkileri durdur ve dinleyenlere olum bilgisini gonder.
     private void Die()
     {
         if (regenCoroutine != null) StopCoroutine(regenCoroutine);

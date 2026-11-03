@@ -12,17 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 617ea82f7681940dfa746dd39da1d1e8, type: 3}
   m_Name: DefaultAgentRewardConfig
   m_EditorClassIdentifier: 
-  buttonReward: 1
+  buttonReward: 3
+  button2Reward: 5
+  button3Reward: 7
   completionReward: 10
-  waitingRewardPerSecond: 0.1
-  earlyExitPenalty: -0.25
-  approachReward: 0.01
-  firePenalty: -0.75
-  fireReentryPenalty: -0.25
-  extinguishReward: 2
-  dryWaterEntryPenalty: -0.25
-  burningPenaltyInterval: 1
-  burningPenaltyPerTick: -0.5
-  fullHealthReward: 0.5
-  timePenaltyPerSecond: -0.01
-  deathPenalty: -5
+  progressRewardScale: 0.05
+  waitingRewardPerSecond: 0.01
+  timePenaltyPerSecond: -0.005

@@ -1,6 +1,7 @@
 
 using UnityEngine;
 
+// Oyna butonuna basildiginda ana menu panelini gizle.
 public class MainMenuController : MonoBehaviour
 {
     public GameObject mainMenuPanel;
