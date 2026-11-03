@@ -12,7 +12,7 @@ public class TrainingPlayerPassSimulator : MonoBehaviour
     // Oyuncunun kapidan gecip gecmedigini belirtir.
     public bool HasPlayerPassed { get; private set; }
     // Oyuncunun gecisi gercekten bekleniyor mu?
-    public bool IsWaiting => isActiveTask && passCoroutine != null && !HasPlayerPassed;
+    public bool IsWaiting => isActiveTask && !HasPlayerPassed && (realPlayerMode ? occupants.Count > 0 : passCoroutine != null);
     public float MinimumDelay => minDelay;
     public float MaximumDelay => maxDelay;
     public event Action<TrainingPlayerPassSimulator> OnAgentReached;
@@ -21,6 +21,14 @@ public class TrainingPlayerPassSimulator : MonoBehaviour
     private readonly HashSet<Collider2D> occupants = new HashSet<Collider2D>();
     private Coroutine passCoroutine;
     private bool isActiveTask;
+    private bool realPlayerMode;
+    public bool IsTaskActive => isActiveTask;
+
+    public void UseRealPlayer() { CancelWaiting(false); realPlayerMode = true; }
+    public void NotifyPlayerPassed()
+    {
+        if (realPlayerMode && isActiveTask) HasPlayerPassed = true;
+    }
     private void OnTriggerEnter2D(Collider2D other) { RegisterOccupant(other); }
     private void OnTriggerStay2D(Collider2D other) { RegisterOccupant(other); }
     // Yalnizca ML-Agent butona bastiginda calisir.
@@ -51,7 +59,7 @@ public class TrainingPlayerPassSimulator : MonoBehaviour
     // Ayni buton icin ikinci bir bekleme coroutinei acma.
     private void StartWaitingIfReady()
     {
-        if (isActiveTask && occupants.Count > 0 && !HasPlayerPassed && passCoroutine == null)
+        if (!realPlayerMode && isActiveTask && occupants.Count > 0 && !HasPlayerPassed && passCoroutine == null)
             passCoroutine = StartCoroutine(SimulatePlayerPass());
     }
     // Secilen sure boyunca butonda kaldiysa oyuncu gecmis kabul et.

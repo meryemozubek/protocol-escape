@@ -9,6 +9,10 @@ public class DoorScript : MonoBehaviour
     [SerializeField] private Vector3 openOffset = new Vector3(0, 3f, 0);
     [SerializeField] private float moveSpeed = 3f;
 
+    public bool IsOpen => isOpen;
+    public Vector2 PassageDirection => ((Vector2)openOffset).sqrMagnitude > 0.001f
+        ? Vector2.Perpendicular((Vector2)openOffset).normalized : Vector2.up;
+    private bool keepOpen;
     private Vector3 closedPosition;
     private Vector3 targetPosition;
 
@@ -31,8 +35,11 @@ public class DoorScript : MonoBehaviour
         Debug.Log("Door opened!");
     }
 
+    public void KeepOpen() { keepOpen = true; OpenDoor(); }
+
     public void CloseDoor()
     {
+        if (keepOpen) return;
         isOpen = false;
         targetPosition = closedPosition;
         Debug.Log("Door closed!");
