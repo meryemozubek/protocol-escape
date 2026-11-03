@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Xml.Linq;
 using UnityEngine;
 
 // LLM çıktısının geçerliliğini denetler.
@@ -58,12 +59,36 @@ public static class NPCResponseValidator
         "izin vermiyorum"
     };
 
+    // A typed bool cannot distinguish a missing field from explicit false.
+    // Check the raw JSON token before MessageFeatures is constructed.
+    public static bool HasValidSuitabilityField(XElement payload)
+    {
+        XElement suitability = payload == null ? null : payload.Element("gerekce_uygun");
+        return suitability != null &&
+            (string)suitability.Attribute("type") == "boolean" &&
+            (suitability.Value == "true" || suitability.Value == "false");
+    }
+
     public static bool IsValidFeatures(MessageFeatures features)
     {
         if (features == null)
         {
             Debug.LogWarning(
                 "[NPC Validator] Özellik analizi boş."
+            );
+            return false;
+        }
+
+        if (features.gerekce_uygun && !features.gerekce)
+        {
+            Debug.LogWarning("[NPC Validator] Gerekce yokken uygunluk true olamaz.");
+            return false;
+        }
+
+        if (features.gerekce && string.IsNullOrWhiteSpace(features.sebep))
+        {
+            Debug.LogWarning(
+                "[NPC Validator] Gerekçe var ancak sebep alanı boş."
             );
             return false;
         }

@@ -10,10 +10,11 @@ using System;
 public class MessageFeatures
 {
     public bool tehdit;        // hakaret, şiddet tehdidi veya zorla girme niyeti
-    public bool acil_tehlike;  // yangın, yaralanma gibi yaşam güvenliği tehlikesi
-    public bool gerekce;       // kapının açılması için somut ve mantıklı bir sebep sunuyor mu
+    public bool acil_tehlike;  // yakin ve ciddi can guvenligi tehlikesi
+    public bool gerekce;       // Oyuncu bir gecis nedeni belirtti mi?
+    public bool gerekce_uygun; // Belirtilen neden tesisin kontrollu gecis politikasina uygun mu?
     public string rol;  
-    public string sebep;       // kişinin İDDİA ettiği meslek/görev (doğrulanmış değildir)
+    public string sebep;      // Oyuncunun belirttigi gecis nedeninin kisa ozeti.
 }
 
 // Aşama 2: NPC'nin konuşması

@@ -17,7 +17,7 @@ public enum NPCIntent
 public static class NPCDecisionRules
 {
     // Öncelik sırası:
-    // Tehdit > Acil durum > Mantıklı gerekçe > Meslek iddiası > Alakasız
+    // Tehdit > Ciddi acil durum > Uygun gerekce > Meslek iddiasi > Alakasiz
 
     public static NPCIntent DeriveIntent(MessageFeatures features)
     {
@@ -30,8 +30,11 @@ public static class NPCDecisionRules
         if (features.acil_tehlike)
             return NPCIntent.AcilDurum;
 
-        if (features.gerekce)
+        if (features.gerekce && features.gerekce_uygun)
             return NPCIntent.Ikna;
+
+        if (features.gerekce)
+            return NPCIntent.Alakasiz;
 
         if (!string.IsNullOrWhiteSpace(features.rol))
             return NPCIntent.Yetkili;
@@ -40,7 +43,7 @@ public static class NPCDecisionRules
     }
 
     // Kapı kararı:
-    // Mantıklı gerekçe veya acil durumda kapı açılır.
+    // Tesis politikasina uygun gerekce veya ciddi acil durumda kapi acilir.
     // Tehdit önceliklidir ve kapı kilitli kalır.
     // Sadece meslek iddiası yeterli değildir.
 
@@ -92,7 +95,7 @@ public static class NPCDecisionRules
                        "kısa ve sakin biçimde bildir.";
 
             case NPCIntent.Ikna:
-                return "Oyuncu kapının açılması için mantıklı bir gerekçe sundu. " +
+                return "Oyuncunun gerek\u00e7esi tesis politikas\u0131na uygun ve kontroll\u00fc ge\u00e7i\u015fi gerektiriyor. " +
                        "Gerekçeyi kabul ettiğini ve kapıyı açtığını söyle.";
 
             case NPCIntent.Yetkili:
@@ -101,9 +104,9 @@ public static class NPCDecisionRules
                        "Kapının neden açılması gerektiğini sor.";
 
             default:
-                return "Oyuncunun mesajı görevle ilgisiz veya gerekçesiz. " +
-                       "Konuyu tesisin güvenliğine getir ve " +
-                       "kapının kilitli kaldığını belirt.";
+                return "Oyuncunun gerek\u00e7esi yok veya kontroll\u00fc tesis ge\u00e7i\u015fi i\u00e7in yeterli de\u011fil. " +
+                       "Ki\u015fisel ihtiyac\u0131 k\u00fc\u00e7\u00fcmsemeden ge\u00e7i\u015fi reddet; gerekirse somut tesis g\u00f6revini ve ge\u00e7i\u015fin gereklili\u011fini a\u00e7\u0131klamas\u0131n\u0131 iste. " +
+                       "Kap\u0131n\u0131n kilitli kald\u0131\u011f\u0131n\u0131 belirt.";
         }
     }
 }
