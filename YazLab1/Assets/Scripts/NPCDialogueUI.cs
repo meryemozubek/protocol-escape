@@ -8,7 +8,11 @@ public class NPCDialogueUI : MonoBehaviour
 {
     [Header("Referanslar")]
     [SerializeField] private OllamaManager ollamaManager;
+    // Keep the serialized field for MazeScene and MazeScene_Yedek.
     [SerializeField] private DoorScript doorScript;
+    [SerializeField] private FinishTriggerController exitController;
+    [SerializeField] private bool usePhysicalExit = false;
+    [SerializeField] private PlayerHealth playerHealth;
 
     [Header("ARGUS Panel Kapatma")]
     [SerializeField] private GameObject argusPanel;
@@ -22,10 +26,6 @@ public class NPCDialogueUI : MonoBehaviour
 
     [Header("Davranış")]
     [SerializeField] private float typewriterCharsPerSecond = 45f;
-
-    [SerializeField, TextArea(2, 3)]
-    private string welcomeMessage =
-        "Güvenlik robotu iletişim için hazır. Lütfen kimliğinizi belirtin.";
 
     private static readonly Color ThinkingColor =
         new Color32(130, 150, 176, 255);
@@ -47,6 +47,81 @@ public class NPCDialogueUI : MonoBehaviour
 
     private bool isProcessing;
     private bool doorOpened;
+    private bool requestPending;
+    private int conversationVersion;
+
+    private void OnEnable()
+    {
+        conversationVersion++;
+        requestPending = false;
+        if (playerHealth == null)
+        {
+            GameObject player = GameObject.FindGameObjectWithTag("Player");
+            if (player != null)
+                playerHealth = player.GetComponent<PlayerHealth>();
+        }
+        if (playerHealth != null)
+            playerHealth.OnPlayerDied += HandlePlayerDied;
+
+        if (npcResponseText != null)
+        {
+            npcResponseText.text = "";
+            npcResponseText.maxVisibleCharacters = 99999;
+        }
+        if (statusText != null)
+            statusText.text = "";
+        SetProcessing(false);
+    }
+
+    private void OnDisable()
+    {
+        if (playerHealth != null)
+            playerHealth.OnPlayerDied -= HandlePlayerDied;
+        InvalidateConversation();
+    }
+
+    private void HandlePlayerDied()
+    {
+        InvalidateConversation();
+        if (argusPanel != null)
+            argusPanel.SetActive(false);
+    }
+
+    private void InvalidateConversation()
+    {
+        conversationVersion++;
+        requestPending = false;
+        StopThinking();
+        StopRoutine(ref typingRoutine);
+        StopRoutine(ref closeRoutine);
+        SetProcessing(false);
+    }
+
+    private bool CanContinueConversation()
+    {
+        if (!isActiveAndEnabled ||
+            (argusPanel != null && !argusPanel.activeInHierarchy))
+            return false;
+
+        if (playerHealth != null)
+        {
+            if (!playerHealth.gameObject.activeInHierarchy || playerHealth.CurrentHealth <= 0)
+                return false;
+        }
+        else if (usePhysicalExit)
+        {
+            return false;
+        }
+
+        return !usePhysicalExit || (exitController != null &&
+            (exitController.victoryPanel == null || !exitController.victoryPanel.activeInHierarchy));
+    }
+
+    private bool IsRequestValid(int version)
+    {
+        return this != null && requestPending &&
+            conversationVersion == version && CanContinueConversation();
+    }
 
     private void Start()
     {
@@ -58,7 +133,7 @@ public class NPCDialogueUI : MonoBehaviour
         if (npcResponseText != null)
         {
             defaultTextColor = npcResponseText.color;
-            npcResponseText.text = welcomeMessage;
+            npcResponseText.text = "";
         }
 
         if (statusText != null)
@@ -99,6 +174,9 @@ public class NPCDialogueUI : MonoBehaviour
 
     private void OnSendRequested()
     {
+        if (!isActiveAndEnabled) return;
+        if (usePhysicalExit)
+            doorOpened = exitController != null && exitController.IsUnlocked;
         if (isProcessing || doorOpened)
         {
             return;
@@ -125,6 +203,15 @@ public class NPCDialogueUI : MonoBehaviour
             return;
         }
 
+        if (usePhysicalExit && (playerHealth == null || exitController == null))
+        {
+            ShowStatus("\u00c7\u0131k\u0131\u015f sistemi haz\u0131r de\u011fil. Tekrar deneyin.", WarningColor);
+            return;
+        }
+        if (!CanContinueConversation()) return;
+
+        int version = ++conversationVersion;
+        requestPending = true;
         playerInputField.text = "";
 
         SetProcessing(true);
@@ -134,32 +221,44 @@ public class NPCDialogueUI : MonoBehaviour
 
         ollamaManager.AskNPC(
             userMessage,
-            HandleResult,
-            HandleError
+            data => { if (IsRequestValid(version)) HandleResult(data); },
+            message => { if (IsRequestValid(version)) HandleError(message); },
+            () => IsRequestValid(version)
         );
     }
 
     private void HandleResult(NPCResponseData data)
     {
+        if (!requestPending || !CanContinueConversation()) return;
+        if (data == null)
+        {
+            HandleError("ARGUS yanıtı alınamadı. Tekrar deneyin.");
+            return;
+        }
+
         StopThinking();
         SetProcessing(false);
 
-        bool granted = data.door_unlocked;
+        // Onay ancak fiziksel çıkış da açıldığında arayüze yansıtılır.
+        if (data.door_unlocked)
+        {
+            if (!TryUnlockDoor())
+            {
+                HandleError("Çıkış kilidi açılamadı. Sahne bağlantısını kontrol edin.");
+                return;
+            }
+            Debug.Log("[ARGUS] Çıkış kilidi açıldı.");
+        }
+
+        if (usePhysicalExit)
+            doorOpened = exitController != null && exitController.IsUnlocked;
+        bool granted = doorOpened;
+        requestPending = false;
 
         ShowStatus(
             granted ? "ERİŞİM ONAYLANDI" : "ERİŞİM REDDEDİLDİ",
             granted ? GrantedColor : DeniedColor
         );
-
-        // Kapı açma kararı onaylandıysa kapıyı aç
-        if (granted && doorScript != null)
-        {
-            doorScript.OpenDoor();
-
-            doorOpened = true;
-
-            Debug.Log("Kapı kilidi açıldı!");
-        }
 
         // ARGUS cevabını yazı animasyonuyla göster
         StopRoutine(ref typingRoutine);
@@ -179,20 +278,32 @@ public class NPCDialogueUI : MonoBehaviour
         }
     }
 
+    private bool TryUnlockDoor()
+    {
+        if (!requestPending || !CanContinueConversation()) return false;
+        // Physical mode never falls back to a puzzle door or searches the scene.
+        if (usePhysicalExit)
+            return exitController != null && exitController.UnlockExit();
+
+        if (doorScript == null)
+            return false;
+
+        doorScript.OpenDoor();
+        doorOpened = true;
+        return true;
+    }
+
     private void HandleError(string message)
     {
+        if (!requestPending || !CanContinueConversation()) return;
+        requestPending = false;
         StopThinking();
+        StopRoutine(ref typingRoutine);
+        StopRoutine(ref closeRoutine);
         SetProcessing(false);
-
-        ShowStatus(message, WarningColor);
-
         if (npcResponseText != null)
-        {
-            npcResponseText.color = defaultTextColor;
-            npcResponseText.maxVisibleCharacters = 99999;
-            npcResponseText.text =
-                "NPC şu anda yanıt veremiyor.";
-        }
+            npcResponseText.text = "";
+        ShowStatus(message, WarningColor);
     }
 
     private void StartThinking()
@@ -242,7 +353,7 @@ public class NPCDialogueUI : MonoBehaviour
         while (true)
         {
             npcResponseText.text =
-                frames[index % frames.Length];
+                "S\u0130STEM: " + frames[index % frames.Length];
 
             index++;
 
@@ -313,13 +424,18 @@ public class NPCDialogueUI : MonoBehaviour
 
     private void ShowStatus(string message, Color color)
     {
-        if (statusText == null)
+        string notification = "S\u0130STEM: " + message;
+        if (statusText != null && statusText.isActiveAndEnabled)
         {
-            return;
+            statusText.text = notification;
+            statusText.color = color;
         }
-
-        statusText.text = message;
-        statusText.color = color;
+        else if (npcResponseText != null)
+        {
+            npcResponseText.text = notification;
+            npcResponseText.color = color;
+            npcResponseText.maxVisibleCharacters = 99999;
+        }
     }
 
     private void SetProcessing(bool processing)
@@ -336,7 +452,7 @@ public class NPCDialogueUI : MonoBehaviour
             playerInputField.interactable = !processing;
         }
 
-        if (!processing &&
+        if (!processing && isActiveAndEnabled &&
             playerInputField != null &&
             playerInputField.isActiveAndEnabled)
         {

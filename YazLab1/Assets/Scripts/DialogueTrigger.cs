@@ -6,6 +6,7 @@ public class DialogueTrigger : MonoBehaviour
 {
     [Header("Referanslar")]
     [SerializeField] private GameObject argusPanel;
+    [SerializeField] private FinishTriggerController exitController;
 
     [Header("Ayarlar")]
     [SerializeField] private string playerTag = "Player";
@@ -20,6 +21,9 @@ public class DialogueTrigger : MonoBehaviour
     private void OnTriggerEnter2D(Collider2D other)
     {
         if (!other.CompareTag(playerTag))
+            return;
+
+        if (exitController != null && exitController.IsUnlocked)
             return;
 
         Debug.Log("OYUNCU NPC ALANINA GİRDİ!");
