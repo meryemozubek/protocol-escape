@@ -11,13 +11,11 @@ public class DialogueTrigger : MonoBehaviour
     [SerializeField] private bool hideOnExit = false;
 
     
-    // Bilesen eklenirken collideri gecis algilayan trigger olarak ayarla.
     private void Reset()
     {
         GetComponent<Collider2D>().isTrigger = true;
     }
 
-    // Sadece oyuncu girdiginde konusma panelini ac.
     private void OnTriggerEnter2D(Collider2D other)
     {
         if (!other.CompareTag(playerTag)) return;
@@ -31,7 +29,6 @@ public class DialogueTrigger : MonoBehaviour
         dialogueUI.ShowDialoguePanel();
     }
 
-    // Cikista gizleme seciliyse paneli kapat; degilse konusma acik kalsin.
     private void OnTriggerExit2D(Collider2D other)
     {
         if (!hideOnExit || !other.CompareTag(playerTag)) return;

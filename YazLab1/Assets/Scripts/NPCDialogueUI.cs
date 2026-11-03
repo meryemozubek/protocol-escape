@@ -4,7 +4,6 @@ using UnityEngine.UI;
 using TMPro;
 
 
-// Oyuncunun mesajini NPCye ilet ve cevabi konusma panelinde goster.
 public class NPCDialogueUI : MonoBehaviour
 {
     [Header("Referanslar")]
@@ -53,7 +52,6 @@ public class NPCDialogueUI : MonoBehaviour
         SetProcessing(false);
     }
 
-    // Panel yok olurken buton ve Enter tusu aboneliklerini kaldir.
     private void OnDestroy()
     {
         if (sendButton != null) sendButton.onClick.RemoveListener(OnSendRequested);
@@ -62,7 +60,6 @@ public class NPCDialogueUI : MonoBehaviour
 
     private void OnInputSubmitted(string _) => OnSendRequested();
 
-    // Bos mesaji gonderme; onceki istek bitmeden ikinci istek baslatma.
     private void OnSendRequested()
     {
         if (isProcessing) return;
@@ -90,7 +87,6 @@ public class NPCDialogueUI : MonoBehaviour
         ollamaManager.AskNPC(userMessage, HandleResult, HandleError);
     }
 
-    // Gelen erisim kararini goster; onay varsa kapiyi ac.
     private void HandleResult(NPCResponseData data)
     {
         StopThinking();
@@ -111,7 +107,6 @@ public class NPCDialogueUI : MonoBehaviour
         typingRoutine = StartCoroutine(TypeText(data.dialogue));
     }
 
-    // Hata durumunda bekleme animasyonunu bitir ve yeniden mesaj yazilabilsin.
     private void HandleError(string message)
     {
         StopThinking();
@@ -142,7 +137,6 @@ public class NPCDialogueUI : MonoBehaviour
         if (npcResponseText != null) npcResponseText.color = defaultTextColor;
     }
 
-    // Cevap gelene kadar dusunme yazisini oyun hizindan bagimsiz guncelle.
     private IEnumerator ThinkingAnimation()
     {
         if (npcResponseText == null) yield break;
@@ -161,7 +155,6 @@ public class NPCDialogueUI : MonoBehaviour
         }
     }
 
-    // Cevabi bir anda gostermek yerine karakter karakter gorunur yap.
     private IEnumerator TypeText(string text)
     {
         if (npcResponseText == null) yield break;
@@ -194,7 +187,6 @@ public class NPCDialogueUI : MonoBehaviour
         statusText.color = color;
     }
 
-    // Istek surerken girisi kilitle; bitince yazma alanina yeniden odaklan.
     private void SetProcessing(bool processing)
     {
         isProcessing = processing;

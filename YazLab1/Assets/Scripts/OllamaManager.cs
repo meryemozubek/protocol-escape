@@ -35,7 +35,6 @@ public class NPCResponseData
 }
 
 [Serializable]
-// Modelin cevap uretirken kullanacagi rastgelelik ve uzunluk ayarlari.
 public class RequestOptions
 {
     public float temperature = 0.2f;
@@ -44,7 +43,6 @@ public class RequestOptions
 }
 
 [Serializable]
-// Ollama sohbetindeki bir mesajin rolunu ve metnini tut.
 public class ChatMessage
 {
     public string role;
@@ -52,7 +50,6 @@ public class ChatMessage
 }
 
 [Serializable]
-// Model adi, mesajlar ve secenekleri tek istek govdesinde birlestir.
 public class ChatRequest
 {
     public string model;
@@ -62,7 +59,6 @@ public class ChatRequest
 }
 
 [Serializable]
-// Ollamadan gelen mesajin rolunu ve icerigini oku.
 public class ChatResponseMessage
 {
     public string role;
@@ -70,7 +66,6 @@ public class ChatResponseMessage
 }
 
 [Serializable]
-// HTTP cevabinin icindeki asil mesaj ve tamamlanma bilgisini tut.
 public class ChatResponse
 {
     public ChatResponseMessage message;

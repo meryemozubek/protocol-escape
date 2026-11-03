@@ -62,14 +62,12 @@ public class HowToPlayScreen : MonoBehaviour
         }
     }
 
-    // Kilavuzu kapat; donulecek menu atanmis ise onu tekrar goster.
     public void Close()
     {
         if (howToPlayPanel != null) howToPlayPanel.SetActive(false);
         if (returnPanel != null) returnPanel.SetActive(true);
     }
 
-    // Gorseldeki dugmenin uzerine tiklanabilir alan koy; konumu 0-1 oranlariyla ayarla.
     private void CreateHitArea(string objectName, Rect area)
     {
         GameObject obj = new GameObject(objectName, typeof(RectTransform), typeof(Image), typeof(Button));
