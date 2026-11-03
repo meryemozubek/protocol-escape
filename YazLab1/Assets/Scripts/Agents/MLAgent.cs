@@ -11,6 +11,8 @@ using Unity.MLAgents.SideChannels;
 [RequireComponent(typeof(Rigidbody2D))]
 public class MLAgent : Agent
 {
+    [SerializeField] private bool gameplayMode;
+    [SerializeField] private DoorScript[] gameplayDoors;
     [SerializeField] private float moveSpeed = 5f;
     [SerializeField] private float observationRange = 35f;
     [SerializeField] private AgentRewardConfig rewardConfig;
@@ -21,6 +23,7 @@ public class MLAgent : Agent
     [SerializeField] private Transform targetButton3;
     [SerializeField] private TrainingPlayerPassSimulator targetPassSimulator3;
     private Rigidbody2D rb;
+    private GameObject gameplayMenu;
     private Transform[] targets;
     private TrainingPlayerPassSimulator[] simulators;
     private AgentRewardPolicy rewards;
@@ -42,6 +45,10 @@ public class MLAgent : Agent
     public override void Initialize()
     {
         rb = GetComponent<Rigidbody2D>();
+        if (gameplayMode)
+        {
+            gameplayMenu = GameObject.Find("MainMenuPanel");
+        }
         // Ajanin ilk konumunu kaydet.
         startPosition = rb.position;
         // Butonlari gorev sirasina gore kaydet.
@@ -54,6 +61,15 @@ public class MLAgent : Agent
                 throw new InvalidOperationException($"Buton {i + 1} referanslari eksik.");
             // Butona varma ve beklemeden ayrilma olaylarini saymak icin dinlemeye basla.
             simulators[i].OnAgentReached += HandleReached;
+            if (gameplayMode)
+            {
+                if (gameplayDoors == null || gameplayDoors.Length != 3 || gameplayDoors[i] == null)
+                    throw new InvalidOperationException("Oyun kapisi referansi eksik.");
+                simulators[i].UseRealPlayer();
+                var detector = new GameObject("PlayerPass_" + (i + 1)).AddComponent<PlayerDoorPassDetector>();
+                detector.transform.SetParent(transform.parent);
+                detector.Initialize(gameplayDoors[i], simulators[i]);
+            }
             simulators[i].OnWaitCancelled += HandleWaitCancelled;
         }
         // Odul ayarlarini yukle.
@@ -96,7 +112,7 @@ public class MLAgent : Agent
     public override void CollectObservations(VectorSensor sensor)
     {
         // Siradaki butonun konumu.
-        Vector2 difference = currentButtonIndex < targets.Length
+        Vector2 difference = currentButtonIndex < targets.Length && targets[currentButtonIndex] != null
             ? (Vector2)targets[currentButtonIndex].position - rb.position : Vector2.zero;
         float range = Mathf.Max(0.001f, observationRange);
         // Uzakliklari benzer olcege getir; isin gozlemleri ayri sensor tarafindan eklenir.
@@ -111,7 +127,7 @@ public class MLAgent : Agent
     // Agent'in aksiyonlarini uygular.
     public override void OnActionReceived(ActionBuffers actions)
     {
-        if (!ready || summarySent) return;
+        if (!ready || summarySent || (gameplayMode && gameplayMenu != null && gameplayMenu.activeInHierarchy)) return;
         hasActed = true;
         // Siradaki butonun gecis durumunu kontrol et.
         if (currentButtonIndex < simulators.Length && simulators[currentButtonIndex].HasPlayerPassed)
@@ -119,6 +135,12 @@ public class MLAgent : Agent
             AddReward(rewards.GetButtonReward(currentButtonIndex, completionCounts[currentButtonIndex] > 0));
             // Buton tamamlanmasini bir kez say ve sonraki hedefe gec.
             completionCounts[currentButtonIndex] = 1;
+            if (gameplayMode && gameplayDoors != null && currentButtonIndex < gameplayDoors.Length)
+            {
+                var trigger = targets[currentButtonIndex].GetComponent<SwitchTrigger>();
+                if (trigger != null) { trigger.CancelInvoke(); trigger.enabled = false; }
+                gameplayDoors[currentButtonIndex].KeepOpen();
+            }
             simulators[currentButtonIndex].SetTaskActive(false);
             // Siradaki goreve gec.
             currentButtonIndex++;
@@ -161,7 +183,7 @@ public class MLAgent : Agent
 
     private bool IsWaitingAtTarget()
     {
-        return currentButtonIndex < simulators.Length && simulators[currentButtonIndex].IsWaiting;
+        return currentButtonIndex < simulators.Length && simulators[currentButtonIndex] != null && simulators[currentButtonIndex].IsWaiting;
     }
     // Yeni hedefin uzakligini baslangic al; hedef degisimi sahte ilerleme odulu uretmesin.
     private void ResetTargetDistance()
@@ -185,6 +207,13 @@ public class MLAgent : Agent
     private void FinishEpisode(string reason, bool interrupted)
     {
         SendSummary(reason);
+        if (gameplayMode && reason == "completed")
+        {
+            rb.velocity = Vector2.zero;
+            var requester = GetComponent<DecisionRequester>();
+            if (requester != null) requester.enabled = false;
+            return;
+        }
         if (interrupted) EpisodeInterrupted(); else EndEpisode();
     }
     // Tamamlanan butonlari, bekleme iptallerini ve simulasyon suresini paketle.
