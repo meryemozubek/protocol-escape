@@ -2,6 +2,7 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 using TMPro;
 
 public class NPCDialogueUI : MonoBehaviour
@@ -48,12 +49,14 @@ public class NPCDialogueUI : MonoBehaviour
     private bool isProcessing;
     private bool doorOpened;
     private bool requestPending;
-    private int conversationVersion;
+    private int requestVersion;
+    private int managerConversationId = -1;
 
     private void OnEnable()
     {
-        conversationVersion++;
+        requestVersion++;
         requestPending = false;
+        EnsureConversation();
         if (playerHealth == null)
         {
             GameObject player = GameObject.FindGameObjectWithTag("Player");
@@ -89,12 +92,20 @@ public class NPCDialogueUI : MonoBehaviour
 
     private void InvalidateConversation()
     {
-        conversationVersion++;
+        requestVersion++;
         requestPending = false;
+        if (ollamaManager != null) ollamaManager.EndConversation(managerConversationId);
+        managerConversationId = -1;
         StopThinking();
         StopRoutine(ref typingRoutine);
         StopRoutine(ref closeRoutine);
         SetProcessing(false);
+    }
+
+    private void EnsureConversation()
+    {
+        if (ollamaManager != null && !ollamaManager.IsConversationCurrent(managerConversationId))
+            managerConversationId = ollamaManager.BeginConversation();
     }
 
     private bool CanContinueConversation()
@@ -120,7 +131,8 @@ public class NPCDialogueUI : MonoBehaviour
     private bool IsRequestValid(int version)
     {
         return this != null && requestPending &&
-            conversationVersion == version && CanContinueConversation();
+            requestVersion == version && CanContinueConversation() &&
+            ollamaManager != null && ollamaManager.IsConversationCurrent(managerConversationId);
     }
 
     private void Start()
@@ -129,6 +141,8 @@ public class NPCDialogueUI : MonoBehaviour
         {
             ollamaManager = FindFirstObjectByType<OllamaManager>();
         }
+        EnsureConversation();
+        ConfigureArgusReadability();
 
         if (npcResponseText != null)
         {
@@ -193,7 +207,7 @@ public class NPCDialogueUI : MonoBehaviour
         if (string.IsNullOrEmpty(userMessage))
         {
             ShowStatus("Lütfen bir mesaj yazın.", WarningColor);
-            playerInputField.ActivateInputField();
+            FocusInput();
             return;
         }
 
@@ -210,7 +224,8 @@ public class NPCDialogueUI : MonoBehaviour
         }
         if (!CanContinueConversation()) return;
 
-        int version = ++conversationVersion;
+        EnsureConversation();
+        int version = ++requestVersion;
         requestPending = true;
         playerInputField.text = "";
 
@@ -219,11 +234,21 @@ public class NPCDialogueUI : MonoBehaviour
         StopRoutine(ref typingRoutine);
         StartThinking();
 
+        // Mevcut sahne referanslarından türetilir; yeni GameObject/Inspector alanı yok.
+        FinishTriggerController requestedExit = exitController;
+        PlayerHealth requestedPlayer = playerHealth;
+        var escapeContext = new ArgusEscapeContext(() =>
+            IsRequestValid(version) && usePhysicalExit &&
+            requestedExit != null && exitController == requestedExit &&
+            requestedPlayer != null && playerHealth == requestedPlayer &&
+            !requestedExit.IsUnlocked);
+
         ollamaManager.AskNPC(
             userMessage,
             data => { if (IsRequestValid(version)) HandleResult(data); },
             message => { if (IsRequestValid(version)) HandleError(message); },
-            () => IsRequestValid(version)
+            () => IsRequestValid(version),
+            escapeContext
         );
     }
 
@@ -237,11 +262,15 @@ public class NPCDialogueUI : MonoBehaviour
         }
 
         StopThinking();
-        SetProcessing(false);
 
         // Onay ancak fiziksel çıkış da açıldığında arayüze yansıtılır.
         if (data.door_unlocked)
         {
+            if (ollamaManager == null || !ollamaManager.TryConsumeExitPermission(data))
+            {
+                HandleError("ARGUS izni artık geçerli değil. Konuşmayı yeniden başlatın.");
+                return;
+            }
             if (!TryUnlockDoor())
             {
                 HandleError("Çıkış kilidi açılamadı. Sahne bağlantısını kontrol edin.");
@@ -254,6 +283,7 @@ public class NPCDialogueUI : MonoBehaviour
             doorOpened = exitController != null && exitController.IsUnlocked;
         bool granted = doorOpened;
         requestPending = false;
+        SetProcessing(false);
 
         ShowStatus(
             granted ? "ERİŞİM ONAYLANDI" : "ERİŞİM REDDEDİLDİ",
@@ -347,6 +377,7 @@ public class NPCDialogueUI : MonoBehaviour
 
         int index = 0;
 
+        SetResponseTypography(true);
         npcResponseText.maxVisibleCharacters = 99999;
         npcResponseText.color = ThinkingColor;
 
@@ -369,6 +400,7 @@ public class NPCDialogueUI : MonoBehaviour
             yield break;
         }
 
+        SetResponseTypography(false);
         npcResponseText.text = text ?? "";
         npcResponseText.maxVisibleCharacters = 0;
         npcResponseText.ForceMeshUpdate();
@@ -432,6 +464,7 @@ public class NPCDialogueUI : MonoBehaviour
         }
         else if (npcResponseText != null)
         {
+            SetResponseTypography(true);
             npcResponseText.text = notification;
             npcResponseText.color = color;
             npcResponseText.maxVisibleCharacters = 99999;
@@ -444,20 +477,102 @@ public class NPCDialogueUI : MonoBehaviour
 
         if (sendButton != null)
         {
-            sendButton.interactable = !processing;
+            sendButton.interactable = !processing && !doorOpened;
         }
 
         if (playerInputField != null)
         {
-            playerInputField.interactable = !processing;
+            playerInputField.interactable = !processing && !doorOpened;
         }
 
         if (!processing && isActiveAndEnabled &&
             playerInputField != null &&
             playerInputField.isActiveAndEnabled)
         {
-            playerInputField.ActivateInputField();
+            FocusInput();
         }
+    }
+
+    // Style existing ARGUS text/input components only. Never touch the panel Image,
+    // sprite, RectTransforms, fonts, other scene objects or the PNG artwork.
+    private void ConfigureArgusReadability()
+    {
+        if (!usePhysicalExit || argusPanel != gameObject) return;
+        if (playerInputField != null)
+        {
+            playerInputField.customCaretColor = true;
+            playerInputField.caretColor = new Color32(72, 230, 236, 255);
+            playerInputField.caretWidth = 2;
+            playerInputField.caretBlinkRate = 0.8f;
+            playerInputField.selectionColor = new Color(0.18f, 0.83f, 0.9f, 0.35f);
+            playerInputField.onFocusSelectAll = false;
+            playerInputField.richText = false;
+            playerInputField.pointSize = 24f;
+
+            if (playerInputField.textComponent != null)
+            {
+                TMP_Text text = playerInputField.textComponent;
+                text.color = new Color32(235, 245, 250, 255);
+                text.richText = false;
+                text.extraPadding = true;
+                text.margin = new Vector4(8f, 4f, 8f, 4f);
+            }
+            TMP_Text placeholder = playerInputField.placeholder as TMP_Text;
+            if (placeholder != null)
+            {
+                placeholder.fontSize = 21f;
+                placeholder.color = new Color32(135, 167, 184, 200);
+                placeholder.fontStyle = FontStyles.Italic;
+            }
+            // Tint only the existing input graphic; the parent's PNG stays intact.
+            if (playerInputField.targetGraphic != null &&
+                playerInputField.targetGraphic.gameObject == playerInputField.gameObject)
+            {
+                playerInputField.targetGraphic.color = Color.white;
+                ColorBlock colors = playerInputField.colors;
+                colors.normalColor = new Color(0.12f, 0.35f, 0.42f, 0.06f);
+                colors.highlightedColor = new Color(0.2f, 0.85f, 0.92f, 0.12f);
+                colors.selectedColor = new Color(0.2f, 0.85f, 0.92f, 0.24f);
+                colors.pressedColor = colors.selectedColor;
+                colors.disabledColor = new Color(0.12f, 0.35f, 0.42f, 0.03f);
+                colors.fadeDuration = 0.12f;
+                playerInputField.transition = Selectable.Transition.ColorTint;
+                playerInputField.colors = colors;
+            }
+        }
+        SetResponseTypography(false);
+        if (npcResponseText != null)
+        {
+            npcResponseText.color = new Color32(224, 243, 248, 255);
+            npcResponseText.richText = false;
+            npcResponseText.extraPadding = true;
+            npcResponseText.raycastTarget = false;
+            npcResponseText.margin = new Vector4(18f, 18f, 18f, 18f);
+            npcResponseText.alignment = TextAlignmentOptions.TopLeft;
+            npcResponseText.lineSpacing = 5f;
+            npcResponseText.paragraphSpacing = 8f;
+        }
+    }
+
+    private void SetResponseTypography(bool systemNotification)
+    {
+        if (!usePhysicalExit || argusPanel != gameObject || npcResponseText == null) return;
+        npcResponseText.enableWordWrapping = true;
+        npcResponseText.enableAutoSizing = true;
+        npcResponseText.fontSizeMin = systemNotification ? 16f : 20f;
+        npcResponseText.fontSizeMax = systemNotification ? 20f : 28f;
+        npcResponseText.fontSize = npcResponseText.fontSizeMax;
+        // Autosizing plus the existing <=200-character validator bounds the text.
+        npcResponseText.overflowMode = TextOverflowModes.Ellipsis;
+    }
+
+    private void FocusInput()
+    {
+        if (doorOpened || !CanContinueConversation() || playerInputField == null ||
+            !playerInputField.isActiveAndEnabled || !playerInputField.interactable) return;
+        if (EventSystem.current != null)
+            EventSystem.current.SetSelectedGameObject(playerInputField.gameObject);
+        playerInputField.ActivateInputField();
     }
 
     private void StopRoutine(ref Coroutine routine)

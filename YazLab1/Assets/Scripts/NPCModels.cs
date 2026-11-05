@@ -4,17 +4,33 @@ using System;
 // Veri modelleri (yalnızca veri taşır, mantık içermez)
 // ---------------------------------------------------------------
 
-// Aşama 1: modelin oyuncu mesajından çıkardığı özellikler.
-// Niyet ve kapı kararı modele bırakılmaz; bu özelliklerden C# kuralları türetir.
+// Oyuncu beyanının model analizi; doğrulanmış kimlik/görev/olay kanıtı değildir.
 [Serializable]
 public class MessageFeatures
 {
-    public bool tehdit;        // hakaret, şiddet tehdidi veya zorla girme niyeti
-    public bool acil_tehlike;  // yakin ve ciddi can guvenligi tehlikesi
-    public bool gerekce;       // Oyuncu bir gecis nedeni belirtti mi?
-    public bool gerekce_uygun; // Belirtilen neden tesisin kontrollu gecis politikasina uygun mu?
-    public string rol;  
-    public string sebep;      // Oyuncunun belirttigi gecis nedeninin kisa ozeti.
+    public bool rol; // Oyuncunun teknik personel niteliğine ilişkin model değerlendirmesi.
+    public bool acil_tehlike; // Ciddi, güncel ve bu geçişle ilişkili tehlike.
+    public bool tehdit;
+    public bool yonlendirme;
+    public bool gerekce;
+    public bool gerekce_uygun; // Somut teknik görev ile bu kapıdan geçiş ilişkisi yeterli mi?
+    public string sebep;
+}
+
+// Yalnız oyun kodu oluşturur; modele gönderilen/ondan ayrıştırılan bir yetki değildir.
+// Senaryonun doğruluğu oyuncunun her beyanının doğru olduğu anlamına gelmez.
+public sealed class ArgusEscapeContext
+{
+    private readonly Func<bool> isCurrent;
+    public ArgusEscapeContext(Func<bool> isCurrent) { this.isCurrent = isCurrent; }
+    public bool IsCurrent
+    {
+        get
+        {
+            try { return isCurrent != null && isCurrent(); }
+            catch (Exception) { return false; }
+        }
+    }
 }
 
 // Aşama 2: NPC'nin konuşması
@@ -28,9 +44,10 @@ public class DialogueResult
 [Serializable]
 public class NPCResponseData
 {
-    public string niyet;         // yetkili / tehdit / alakasiz / ikna / acil_durum
+    public string niyet;         // tehdit / yonlendirme / alakasiz / ikna / acil_durum
     public string dialogue;      // NPC'nin modelce üretilmiş cümlesi
     public bool door_unlocked;   // C# kuralıyla belirlenir, modelin serbest metnine bağlı değildir
+    [NonSerialized] internal ArgusEscapeContext EscapeContext; // Model bu alanı üretemez.
 }
 
 // Ollama /api/chat istek ve yanıt modelleri
