@@ -1,0 +1,34 @@
+{
+  "project": "Protocol: Escape",
+  "tile_size_px": 32,
+  "pixels_per_unit": 32,
+  "filter_mode": "Point (no filter)",
+  "compression": "None",
+  "sprite_mesh_type": "Full Rect",
+  "character_spritesheets": {
+    "engineer": {
+      "path": "characters/engineer_spritesheet_3x4.png",
+      "cell_width": 32,
+      "cell_height": 40,
+      "columns": 3,
+      "rows": 4
+    },
+    "robot": {
+      "path": "characters/robot_spritesheet_3x4.png",
+      "cell_width": 32,
+      "cell_height": 40,
+      "columns": 3,
+      "rows": 4
+    }
+  },
+  "animation_directions_row_order": [
+    "down",
+    "up",
+    "left",
+    "right"
+  ],
+  "animation_frames_per_direction": 3,
+  "door": "sliding left into wall; open is transparent; collider disabled when fully open",
+  "water": "objects/water_1x1.png; exactly one 32x32 tile",
+  "lava": "tiles/lava_tileset_6x2.png; 6 columns by 2 rows, 32x32 tiles"
+}
