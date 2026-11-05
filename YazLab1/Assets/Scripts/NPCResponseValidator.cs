@@ -9,7 +9,6 @@ using UnityEngine;
 // NPC cevabı üretmez; hatalı çıktıları reddeder.
 public static class NPCResponseValidator
 {
-    private const int MaxRoleLength = 60;
     private const int MaxDialogueLength = 200;
     private const int MaxSentences = 3;
 
@@ -85,19 +84,10 @@ public static class NPCResponseValidator
             return false;
         }
 
-        if (features.gerekce && string.IsNullOrWhiteSpace(features.sebep))
+        if ((features.gerekce || features.acil_tehlike) && string.IsNullOrWhiteSpace(features.sebep))
         {
             Debug.LogWarning(
-                "[NPC Validator] Gerekçe var ancak sebep alanı boş."
-            );
-            return false;
-        }
-
-        if (features.rol != null &&
-            features.rol.Length > MaxRoleLength)
-        {
-            Debug.LogWarning(
-                "[NPC Validator] Rol alanı çok uzun."
+                "[NPC Validator] Gerekçe veya acil durum var ancak analiz açıklaması boş."
             );
             return false;
         }
