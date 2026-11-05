@@ -2,13 +2,13 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Xml.Linq;
 using UnityEngine;
 
 // LLM çıktısının geçerliliğini denetler.
 // NPC cevabı üretmez; hatalı çıktıları reddeder.
 public static class NPCResponseValidator
 {
-    private const int MaxRoleLength = 60;
     private const int MaxDialogueLength = 200;
     private const int MaxSentences = 3;
 
@@ -58,6 +58,16 @@ public static class NPCResponseValidator
         "izin vermiyorum"
     };
 
+    // A typed bool cannot distinguish a missing field from explicit false.
+    // Check the raw JSON token before MessageFeatures is constructed.
+    public static bool HasValidSuitabilityField(XElement payload)
+    {
+        XElement suitability = payload == null ? null : payload.Element("gerekce_uygun");
+        return suitability != null &&
+            (string)suitability.Attribute("type") == "boolean" &&
+            (suitability.Value == "true" || suitability.Value == "false");
+    }
+
     public static bool IsValidFeatures(MessageFeatures features)
     {
         if (features == null)
@@ -68,11 +78,16 @@ public static class NPCResponseValidator
             return false;
         }
 
-        if (features.rol != null &&
-            features.rol.Length > MaxRoleLength)
+        if (features.gerekce_uygun && !features.gerekce)
+        {
+            Debug.LogWarning("[NPC Validator] Gerekce yokken uygunluk true olamaz.");
+            return false;
+        }
+
+        if ((features.gerekce || features.acil_tehlike) && string.IsNullOrWhiteSpace(features.sebep))
         {
             Debug.LogWarning(
-                "[NPC Validator] Rol alanı çok uzun."
+                "[NPC Validator] Gerekçe veya acil durum var ancak analiz açıklaması boş."
             );
             return false;
         }
