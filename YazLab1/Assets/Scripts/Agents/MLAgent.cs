@@ -135,12 +135,7 @@ public class MLAgent : Agent
             AddReward(rewards.GetButtonReward(currentButtonIndex, completionCounts[currentButtonIndex] > 0));
             // Buton tamamlanmasini bir kez say ve sonraki hedefe gec.
             completionCounts[currentButtonIndex] = 1;
-            if (gameplayMode && gameplayDoors != null && currentButtonIndex < gameplayDoors.Length)
-            {
-                var trigger = targets[currentButtonIndex].GetComponent<SwitchTrigger>();
-                if (trigger != null) { trigger.CancelInvoke(); trigger.enabled = false; }
-                gameplayDoors[currentButtonIndex].KeepOpen();
-            }
+            // Gorev tamamlansa da buton aktif kalir; robot ayrilinca SwitchTrigger kapiyi kapatir.
             simulators[currentButtonIndex].SetTaskActive(false);
             // Siradaki goreve gec.
             currentButtonIndex++;

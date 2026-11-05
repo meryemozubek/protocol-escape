@@ -6431,8 +6431,6 @@ MonoBehaviour:
   sendButton: {fileID: 1544185679}
   statusText: {fileID: 106272410}
   typewriterCharsPerSecond: 45
-  welcomeMessage: "G\xFCvenlik robotu ileti\u015Fim i\xE7in haz\u0131r. L\xFCtfen
-    kimli\u011Finizi belirtin."
 --- !u!1 &1172766302
 GameObject:
   m_ObjectHideFlags: 0
