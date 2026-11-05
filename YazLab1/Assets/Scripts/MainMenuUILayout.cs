@@ -143,6 +143,14 @@ public class MainMenuUILayout : MonoBehaviour
     [ContextMenu("Giriş Ekranını Düzenle")]
     public void ApplyLayout()
     {
+        // The opt-in editor tool installs visuals; gameplay and OnClick methods remain unchanged.
+        var cyberStyle = mainMenuPanel != null ? mainMenuPanel.GetComponent<MainMenuCyberStyle>() : null;
+        if (cyberStyle != null && cyberStyle.layout == this && cyberStyle.IsConfigured)
+        {
+            cyberStyle.ApplyVisuals();
+            return;
+        }
+
         // ANA PANEL
         if (mainMenuPanel != null)
         {
