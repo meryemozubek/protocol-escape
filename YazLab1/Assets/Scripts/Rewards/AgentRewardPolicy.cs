@@ -1,103 +1,48 @@
 // Odul ve ceza kurallarini hesaplar.
 // Unity ML-Agents veya MonoBehaviour'a bagimli degildir.
-
 public class AgentRewardPolicy
 {
-    private readonly float buttonReward;
+    private readonly float[] buttonRewards;
     private readonly float completionReward;
-    private readonly float firePenalty;
-    private readonly float fireReentryPenalty;
-    private readonly float extinguishReward;
-    private readonly float dryWaterEntryPenalty;
+    private readonly float progressRewardScale;
+    private readonly float waitingRewardPerSecond;
     private readonly float timePenaltyPerSecond;
-    private readonly float deathPenalty;
-    private readonly float burningPenaltyPerTick;
-    private readonly float fullHealthReward;
-
-    public AgentRewardPolicy(
-        float buttonReward,
-        float completionReward,
-        float firePenalty,
-        float extinguishReward,
-        float timePenaltyPerSecond,
-        float deathPenalty,
-        float burningPenaltyPerTick,
-        float fullHealthReward,
-        float fireReentryPenalty,
-        float dryWaterEntryPenalty)
+    // Inspector ayarlarini al; odul hesaplarinda ayni degerleri kullan.
+    public AgentRewardPolicy(float buttonReward, float button2Reward, float button3Reward,
+        float completionReward, float progressRewardScale,
+        float waitingRewardPerSecond, float timePenaltyPerSecond)
     {
-        this.buttonReward = buttonReward;
+        buttonRewards = new[] { buttonReward, button2Reward, button3Reward };
         this.completionReward = completionReward;
-        this.firePenalty = firePenalty;
-        this.extinguishReward = extinguishReward;
+        this.progressRewardScale = progressRewardScale;
+        this.waitingRewardPerSecond = waitingRewardPerSecond;
         this.timePenaltyPerSecond = timePenaltyPerSecond;
-        this.deathPenalty = deathPenalty;
-        this.burningPenaltyPerTick = burningPenaltyPerTick;
-        this.fullHealthReward = fullHealthReward;
-        this.fireReentryPenalty = fireReentryPenalty;
-        this.dryWaterEntryPenalty = dryWaterEntryPenalty;
     }
-
     // Oyuncunun dogru butondan gecisi tamamlandiginda odul ver
-    public float GetButtonReward(bool isExpected, bool alreadyCompleted)
+    public float GetButtonReward(int buttonIndex, bool alreadyCompleted = false)
     {
-        return isExpected && !alreadyCompleted ? buttonReward : 0f;
+        return !alreadyCompleted && buttonIndex >= 0 && buttonIndex < buttonRewards.Length
+            ? buttonRewards[buttonIndex] : 0f;
     }
-
-    // Tum gorevler ilk kez tamamlandiginda odul ver
-    public float GetCompletionReward(bool firstCompletion)
+    // Butun gorevler tamamlanmissa ek bitirme odulunu ver.
+    public float GetCompletionReward(bool allCompleted)
     {
-        return firstCompletion ? completionReward : 0f;
+        return allCompleted ? completionReward : 0f;
     }
-
-    // Yeni yanma olustugunda ceza ver
-    public float GetFirePenalty(bool newlyBurning)
+    // Onceki uzakliktan yeni uzakligi cikar; hedefe yaklastiysa sonuc pozitif olur.
+    public float GetProgressReward(float previousDistance, float currentDistance)
     {
-        return newlyBurning ? firePenalty : 0f;
+        return progressRewardScale * (previousDistance - currentDistance);
     }
-
-    // Zaten yanarken tekrar atese temas edildiginde ceza ver.
-    public float GetFireReentryPenalty(bool alreadyBurning)
+    // Cezayi fizik adiminin suresiyle carp; karar sayisina baglama.
+    public float GetTimePenalty(float deltaTime)
     {
-        return alreadyBurning ? fireReentryPenalty : 0f;
-    }
-
-    // Yanma devam ederken her ceza periyodu icin hesapla.
-    public float GetBurningPenalty()
-    {
-        return burningPenaltyPerTick;
-    }
-
-    // Yalnizca yanarken gercekten sondugunde odul ver
-    public float GetExtinguishReward(bool wasBurning, bool extinguished)
-    {
-        return wasBurning && extinguished ? extinguishReward : 0f;
-    }
-
-    // Yanmazken suya girildiginde ceza ver.
-    public float GetDryWaterEntryPenalty(bool wasBurning)
-    {
-        return !wasBurning ? dryWaterEntryPenalty : 0f;
-    }
-
-    // Suda can tamamen doldugunda bir kez odul ver.
-    public float GetFullHealthReward(bool healedInWater, bool alreadyRewarded)
-    {
-        return healedInWater && !alreadyRewarded ? fullHealthReward : 0f;
-    }
-
-    // Dogru butonda oyuncuyu beklerken zaman cezasi verme
-    public float GetTimePenalty(float deltaTime, bool waitingAtCorrectButton)
-    {
-        if (waitingAtCorrectButton)
-            return 0f;
-
         return timePenaltyPerSecond * System.Math.Max(0f, deltaTime);
     }
-
-    // Olum gerceklestiginde ceza ver
-    public float GetDeathPenalty()
+    // Dogru butonda bekledigi her saniye icin odul hesapla.
+    public float GetWaitingReward(float deltaTime, bool waitingAtCorrectButton)
     {
-        return deathPenalty;
+        return waitingAtCorrectButton
+            ? waitingRewardPerSecond * System.Math.Max(0f, deltaTime) : 0f;
     }
 }
